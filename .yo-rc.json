@@ -1,0 +1,18 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "18.17.1",
+    "sdksVersions": {},
+    "version": "1.18.2",
+    "libraryName": "carousel-webpart",
+    "libraryId": "b1e2c3d4-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "carousel-webpart",
+    "solutionShortDescription": "Web part de carrossel customizado",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}

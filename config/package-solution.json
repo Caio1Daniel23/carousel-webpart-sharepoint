@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developercdn.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "carousel-webpart-client-side-solution",
+    "id": "b1e2c3d4-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "undefined"
+    },
+    "metadata": {
+      "shortDescription": { "default": "Web part de Carrossel" },
+      "longDescription": { "default": "Web part de Carrossel customizado para SharePoint Online" },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "carousel-webpart Feature",
+        "description": "The feature that activates elements of the carousel-webpart solution.",
+        "id": "d1e2c3d4-5f6a-4b7c-8d9e-0f1a2b3c4d5f",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/carousel-webpart.sppkg"
+  }
+}

@@ -1,0 +1,23 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependências (reinstaladas via npm install)
+node_modules/
+
+# Build outputs SPFx
+lib/
+dist/
+release/
+solution/
+temp/
+*.sppkg
+
+# Configurações locais
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Certificados
+*.pfx

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "c2f3d4e5-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+  "alias": "CarouselWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "flexibleLayoutSizing": {
+  "supportsDynamicResizing": true,
+  "defaultRowHeight": 10,
+  "defaultColumnWidth": 12
+},
+  "supportedHosts": ["SharePointWebPart", "TeamsPersonalApp", "TeamsTab", "SharePointFullPage"],
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": { "default": "Mídia e conteúdo" },
+      "title": { "default": "Carrossel Customizado" },
+      "description": { "default": "Carrossel de imagens com título, descrição e chamada à ação por slide." },
+      "officeFabricIconFontName": "Slideshow",
+      "properties": {
+        "slides": [],
+        "autoplay": true,
+        "transitionTime": 5,
+        "height": 400,
+        "showArrows": true,
+        "showDots": true
+      }
+    }
+  ]
+}
