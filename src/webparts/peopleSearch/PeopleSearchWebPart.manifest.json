@@ -1,0 +1,28 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "d3e4f5a6-7b8c-49d0-a1e2-3f4b5c6d7e8f",
+  "alias": "PeopleSearchWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart", "TeamsPersonalApp", "TeamsTab", "SharePointFullPage"],
+  "flexibleLayoutSizing": {
+    "supportsDynamicResizing": true,
+    "defaultRowHeight": 10,
+    "defaultColumnWidth": 6
+  },
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": { "default": "Mídia e conteúdo" },
+      "title": { "default": "Busca de Pessoas" },
+      "description": { "default": "Busca pessoas da organização com foto e informações de contato." },
+      "officeFabricIconFontName": "People",
+      "properties": {
+        "placeholderText": "Buscar por nome...",
+        "height": 300
+      }
+    }
+  ]
+}

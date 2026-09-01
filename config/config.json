@@ -9,11 +9,20 @@
           "manifest": "./src/webparts/carousel/CarouselWebPart.manifest.json"
         }
       ]
+    },
+    "people-search-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/peopleSearch/PeopleSearchWebPart.js",
+          "manifest": "./src/webparts/peopleSearch/PeopleSearchWebPart.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},
   "localizedResources": {
     "CarouselWebPartStrings": "lib/webparts/carousel/loc/{locale}.js",
+    "PeopleSearchWebPartStrings": "lib/webparts/peopleSearch/loc/{locale}.js",
     "PropertyControlStrings": "node_modules/@pnp/spfx-property-controls/lib/loc/{locale}.js"
   }
 }
