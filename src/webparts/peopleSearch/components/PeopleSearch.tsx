@@ -1,10 +1,14 @@
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { MSGraphClientV3 } from '@microsoft/sp-http';
+import { SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
 import { Icon } from '@fluentui/react/lib/Icon';
 import styles from './PeopleSearch.module.scss';
 import { IPeopleSearchProps } from './IPeopleSearchProps';
 import { IPersonResult } from '../IPeopleSearchWebPartProps';
+
+// GUID fixo do SharePoint para a fonte de resultados "Local People Results"
+// (a mesma usada internamente pelo web part nativo "Pessoas").
+const PEOPLE_SOURCE_ID = 'b09a7990-05ea-4af9-81ef-edfab16c4e31';
 
 const PeopleSearch: React.FC<IPeopleSearchProps> = (props) => {
   const { context, placeholderText, height } = props;
@@ -20,6 +24,30 @@ const PeopleSearch: React.FC<IPeopleSearchProps> = (props) => {
     return `${context.pageContext.web.absoluteUrl}/_layouts/15/userphoto.aspx?size=M&username=${encodeURIComponent(mail)}`;
   };
 
+  // Transforma o formato de tabela do REST de pesquisa do SharePoint em objetos simples.
+  const parseSearchResults = (json: any): IPersonResult[] => {
+    const rows = json?.PrimaryQueryResult?.RelevantResults?.Table?.Rows || [];
+    return rows.map((row: any) => {
+      const cells: { Key: string; Value: string }[] = row.Cells || [];
+      const getValue = (key: string): string | undefined => {
+        const cell = cells.filter((c) => c.Key === key)[0];
+        return cell ? cell.Value : undefined;
+      };
+
+      const workPhone = getValue('WorkPhone');
+
+      return {
+        id: getValue('AccountName') || getValue('PreferredName') || '',
+        displayName: getValue('PreferredName') || getValue('AccountName') || '',
+        mail: getValue('WorkEmail'),
+        jobTitle: getValue('JobTitle'),
+        businessPhones: workPhone ? [workPhone] : [],
+        officeLocation: getValue('SPS-Location') || getValue('Office'),
+        department: getValue('Department')
+      } as IPersonResult;
+    });
+  };
+
   const search = async (text: string): Promise<void> => {
     if (!text || text.trim().length < 2) {
       setResults([]);
@@ -28,17 +56,23 @@ const PeopleSearch: React.FC<IPeopleSearchProps> = (props) => {
     }
     setLoading(true);
     try {
-      const client: MSGraphClientV3 = await context.msGraphClientFactory.getClient('3');
       const safeText = text.replace(/'/g, "''");
-      const response = await client
-        .api('/users')
-        .header('ConsistencyLevel', 'eventual')
-        .filter(`startswith(displayName,'${safeText}') or startswith(mail,'${safeText}')`)
-        .select('id,displayName,mail,jobTitle,businessPhones,officeLocation,department')
-        .top(6)
-        .get();
+      const selectProps = 'PreferredName,WorkEmail,JobTitle,Department,WorkPhone,SPS-Location,Office,AccountName';
+      const url =
+        `${context.pageContext.web.absoluteUrl}/_api/search/query` +
+        `?querytext='${encodeURIComponent(safeText)}*'` +
+        `&sourceid='${PEOPLE_SOURCE_ID}'` +
+        `&selectproperties='${encodeURIComponent(selectProps)}'` +
+        `&rowlimit=6`;
 
-      setResults(response.value || []);
+      const response: SPHttpClientResponse = await context.spHttpClient.get(url, SPHttpClient.configurations.v1);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const json = await response.json();
+      setResults(parseSearchResults(json));
       setShowDropdown(true);
     } catch (err) {
       setResults([]);
@@ -112,8 +146,8 @@ const PeopleSearch: React.FC<IPeopleSearchProps> = (props) => {
 
       {showDropdown && !selected && results.length > 0 && (
         <div className={styles.resultsList}>
-          {results.map((person) => (
-            <button key={person.id} className={styles.resultRow} onClick={() => onSelectPerson(person)}>
+          {results.map((person, idx) => (
+            <button key={person.id || idx} className={styles.resultRow} onClick={() => onSelectPerson(person)}>
               <img className={styles.resultPhoto} src={photoUrl(person.mail)} alt={person.displayName} />
               <div>
                 <div className={styles.resultName}>{person.displayName}</div>
@@ -131,29 +165,46 @@ const PeopleSearch: React.FC<IPeopleSearchProps> = (props) => {
       {selected && (
         <div className={styles.card}>
           <div className={styles.cardHeader}>
-  <img className={styles.cardPhoto} src={photoUrl(selected.mail)} alt={selected.displayName} />
-  <div className={styles.cardHeaderInfo}>
-    <div className={styles.cardName}>{selected.displayName}</div>
-    {selected.jobTitle && <div className={styles.cardJobTitle}>{selected.jobTitle}</div>}
-  </div>
-  <div className={styles.quickActions}>
-    {selected.mail && (
-      <a className={styles.quickActionButton} href={`https://teams.microsoft.com/l/chat/0/0?users=${encodeURIComponent(selected.mail)}`} target="_blank" rel="noopener noreferrer" aria-label="Conversar no Teams" title="Conversar no Teams">
-        <Icon iconName="OfficeChat" />
-      </a>
-    )}
-    {selected.mail && (
-      <a className={styles.quickActionButton} href={`mailto:${selected.mail}`} aria-label="Enviar e-mail" title="Enviar e-mail">
-        <Icon iconName="Mail" />
-      </a>
-    )}
-    {selected.businessPhones && selected.businessPhones.length > 0 && (
-      <a className={styles.quickActionButton} href={`tel:${selected.businessPhones[0]}`} aria-label="Ligar" title="Ligar">
-        <Icon iconName="Phone" />
-      </a>
-    )}
-  </div>
-</div>
+            <img className={styles.cardPhoto} src={photoUrl(selected.mail)} alt={selected.displayName} />
+            <div className={styles.cardHeaderInfo}>
+              <div className={styles.cardName}>{selected.displayName}</div>
+              {selected.jobTitle && <div className={styles.cardJobTitle}>{selected.jobTitle}</div>}
+            </div>
+            <div className={styles.quickActions}>
+              {selected.mail && (
+                <a
+                  className={styles.quickActionButton}
+                  href={`https://teams.microsoft.com/l/chat/0/0?users=${encodeURIComponent(selected.mail)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Conversar no Teams"
+                  title="Conversar no Teams"
+                >
+                  <Icon iconName="OfficeChat" />
+                </a>
+              )}
+              {selected.mail && (
+                <a
+                  className={styles.quickActionButton}
+                  href={`mailto:${selected.mail}`}
+                  aria-label="Enviar e-mail"
+                  title="Enviar e-mail"
+                >
+                  <Icon iconName="Mail" />
+                </a>
+              )}
+              {selected.businessPhones && selected.businessPhones.length > 0 && (
+                <a
+                  className={styles.quickActionButton}
+                  href={`tel:${selected.businessPhones[0]}`}
+                  aria-label="Ligar"
+                  title="Ligar"
+                >
+                  <Icon iconName="Phone" />
+                </a>
+              )}
+            </div>
+          </div>
 
           <div className={styles.cardSectionTitle}>Contato</div>
           <div className={styles.cardInfoList}>

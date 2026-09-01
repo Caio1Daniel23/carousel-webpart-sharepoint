@@ -28,12 +28,6 @@
         "id": "d1e2c3d4-5f6a-4b7c-8d9e-0f1a2b3c4d5f",
         "version": "1.0.0.0"
       }
-    ],
-    "webApiPermissionRequests": [
-      {
-        "resource": "Microsoft Graph",
-        "scope": "User.Read.All"
-      }
     ]
   },
   "paths": {
