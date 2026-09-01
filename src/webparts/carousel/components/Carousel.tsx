@@ -47,6 +47,12 @@ const Carousel: React.FC<ICarouselProps> = (props) => {
     );
   }
 
+  const linkTargetProps = (slide: ISlide): { target?: string; rel?: string } => {
+    return slide.ctaOpenNewTab
+      ? { target: '_blank', rel: 'noopener noreferrer' }
+      : {};
+  };
+
   const renderCta = (slide: ISlide): JSX.Element | null => {
     if (!slide.ctaType || slide.ctaType === 'none' || !slide.ctaLink) {
       return null;
@@ -55,7 +61,7 @@ const Carousel: React.FC<ICarouselProps> = (props) => {
     switch (slide.ctaType) {
       case 'button':
         return (
-          <a className={styles.ctaButton} href={slide.ctaLink} target="_blank" rel="noopener noreferrer">
+          <a className={styles.ctaButton} href={slide.ctaLink} {...linkTargetProps(slide)}>
             {slide.ctaText || 'Saiba mais'}
           </a>
         );
@@ -64,8 +70,7 @@ const Carousel: React.FC<ICarouselProps> = (props) => {
           <a
             className={styles.ctaIcon}
             href={slide.ctaLink}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...linkTargetProps(slide)}
             aria-label={slide.ctaText || 'Abrir link'}
             title={slide.ctaText || 'Abrir link'}
           >
@@ -74,7 +79,7 @@ const Carousel: React.FC<ICarouselProps> = (props) => {
         );
       case 'text':
         return (
-          <a className={styles.ctaText} href={slide.ctaLink} target="_blank" rel="noopener noreferrer">
+          <a className={styles.ctaText} href={slide.ctaLink} {...linkTargetProps(slide)}>
             {slide.ctaText || 'Saiba mais'}
             <Icon iconName="ChevronRight" />
           </a>
@@ -91,7 +96,7 @@ const Carousel: React.FC<ICarouselProps> = (props) => {
     <div className={styles.carousel} style={{ height }}>
       <div
         className={styles.track}
-        style={{ transform: `translateX(-${current * 100}%)`, width: `${slides.length * 100}%` }}
+        style={{ transform: `translateX(-${current * (100 / slides.length)}%)`, width: `${slides.length * 100}%` }}
       >
         {slides.map((slide, idx) => (
           <div className={styles.slide} style={{ width: `${100 / slides.length}%` }} key={idx}>
@@ -99,8 +104,7 @@ const Carousel: React.FC<ICarouselProps> = (props) => {
               <a
                 className={styles.cardLink}
                 href={slide.ctaLink}
-                target="_blank"
-                rel="noopener noreferrer"
+                {...linkTargetProps(slide)}
                 aria-label={slide.title || 'Abrir link'}
               />
             )}

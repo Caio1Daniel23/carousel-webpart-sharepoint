@@ -4,7 +4,8 @@ import { Version } from '@microsoft/sp-core-library';
 import {
   IPropertyPaneConfiguration,
   PropertyPaneToggle,
-  PropertyPaneSlider
+  PropertyPaneSlider,
+  PropertyPaneTextField
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { SPHttpClient } from '@microsoft/sp-http';
@@ -19,11 +20,12 @@ import { IFilePickerResult } from '@pnp/spfx-property-controls/lib/propertyField
 
 export default class CarouselWebPart extends BaseClientSideWebPart<ICarouselWebPartProps> {
   public render(): void {
+    const heightValue = Number(this.properties.height);
     const element: React.ReactElement = React.createElement(Carousel, {
       slides: this.properties.slides || [],
       autoplay: this.properties.autoplay,
       transitionTime: this.properties.transitionTime,
-      height: this.properties.height,
+      height: !isNaN(heightValue) && heightValue > 0 ? heightValue : 400,
       showArrows: this.properties.showArrows,
       showDots: this.properties.showDots
     });
@@ -81,6 +83,7 @@ export default class CarouselWebPart extends BaseClientSideWebPart<ICarouselWebP
                   panelHeader: 'Editar slides',
                   manageBtnLabel: 'Gerenciar slides',
                   value: this.properties.slides,
+                  enableSorting: true,
                   fields: [
                     {
                       id: 'imageUrl',
@@ -89,17 +92,40 @@ export default class CarouselWebPart extends BaseClientSideWebPart<ICarouselWebP
                       onCustomRender: (field, value, onUpdate, item: ISlide) => {
                         return React.createElement(
                           'div',
-                          { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                          { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6, minWidth: 160 } },
                           value
                             ? React.createElement('img', {
                                 src: value,
-                                style: { width: 60, height: 40, objectFit: 'cover', borderRadius: 2 }
+                                style: {
+                                  width: 150,
+                                  height: 90,
+                                  objectFit: 'cover',
+                                  borderRadius: 2,
+                                  border: '1px solid #edebe9'
+                                }
                               })
-                            : null,
+                            : React.createElement(
+                                'div',
+                                {
+                                  style: {
+                                    width: 150,
+                                    height: 90,
+                                    borderRadius: 2,
+                                    border: '1px dashed #c8c6c4',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#a19f9d',
+                                    fontSize: 11,
+                                    textAlign: 'center'
+                                  }
+                                },
+                                'Sem imagem'
+                              ),
                           React.createElement(FilePicker, {
                             context: this.context as any,
                             buttonIcon: 'Photo2',
-                            buttonLabel: value ? 'Alterar imagem' : 'Escolher imagem',
+                            buttonLabel: value ? 'Alterar' : 'Escolher imagem',
                             accepts: ['.gif', '.jpg', '.jpeg', '.png', '.webp', '.svg'],
                             hideRecentTab: false,
                             hideStockImages: true,
@@ -163,6 +189,11 @@ export default class CarouselWebPart extends BaseClientSideWebPart<ICarouselWebP
                       id: 'ctaLink',
                       title: 'Link',
                       type: CustomCollectionFieldType.url
+                    },
+                    {
+                      id: 'ctaOpenNewTab',
+                      title: 'Abrir link em nova janela',
+                      type: CustomCollectionFieldType.boolean
                     }
                   ],
                   disabled: false
@@ -193,12 +224,16 @@ export default class CarouselWebPart extends BaseClientSideWebPart<ICarouselWebP
             {
               groupName: strings.AppearanceGroupName,
               groupFields: [
-                PropertyPaneSlider('height', {
+                PropertyPaneTextField('height', {
                   label: 'Altura do carrossel (px)',
-                  min: 150,
-                  max: 900,
-                  step: 10,
-                  showValue: true
+                  description: 'Digite qualquer valor em pixels (ex: 245, 400, 512).',
+                  onGetErrorMessage: (value: string) => {
+                    const num = Number(value);
+                    if (value === '' || isNaN(num) || num <= 0) {
+                      return 'Digite um número de pixels maior que 0.';
+                    }
+                    return '';
+                  }
                 })
               ]
             }

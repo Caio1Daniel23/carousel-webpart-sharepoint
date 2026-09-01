@@ -10,6 +10,7 @@ export interface ISlide {
   ctaText?: string;
   ctaIcon?: string;
   ctaLink?: string;
+  ctaOpenNewTab?: boolean;
 }
 
 export interface ICarouselWebPartProps {
