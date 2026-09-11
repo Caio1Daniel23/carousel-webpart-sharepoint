@@ -3,7 +3,6 @@
   width: 100%;
   box-sizing: border-box;
   padding: 16px;
-  border: 1px solid #edebe9;
   border-radius: 4px;
   background: #ffffff;
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -89,7 +88,9 @@
   margin-top: 10px;
   border: 1px solid #edebe9;
   border-radius: 2px;
-  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .resultRow {

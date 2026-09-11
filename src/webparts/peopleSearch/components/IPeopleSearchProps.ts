@@ -3,4 +3,7 @@ export interface IPeopleSearchProps {
   context: WebPartContext;
   placeholderText: string;
   height: number;
+  showHeader: boolean;
+  headerText: string;
+  searchLabelText: string;
 }

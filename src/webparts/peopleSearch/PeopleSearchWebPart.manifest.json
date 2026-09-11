@@ -21,7 +21,10 @@
       "officeFabricIconFontName": "People",
       "properties": {
         "placeholderText": "Buscar por nome...",
-        "height": 300
+        "height": 300,
+        "showHeader": true,
+        "headerText": "Pessoas",
+        "searchLabelText": "Localizar pessoas"
       }
     }
   ]

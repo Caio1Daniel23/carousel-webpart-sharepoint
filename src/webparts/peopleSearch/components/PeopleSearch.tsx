@@ -11,7 +11,7 @@ import { IPersonResult } from '../IPeopleSearchWebPartProps';
 const PEOPLE_SOURCE_ID = 'b09a7990-05ea-4af9-81ef-edfab16c4e31';
 
 const PeopleSearch: React.FC<IPeopleSearchProps> = (props) => {
-  const { context, placeholderText, height } = props;
+  const { context, placeholderText, height, showHeader, headerText, searchLabelText } = props;
   const [query, setQuery] = useState<string>('');
   const [results, setResults] = useState<IPersonResult[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -63,7 +63,7 @@ const PeopleSearch: React.FC<IPeopleSearchProps> = (props) => {
         `?querytext='${encodeURIComponent(safeText)}*'` +
         `&sourceid='${PEOPLE_SOURCE_ID}'` +
         `&selectproperties='${encodeURIComponent(selectProps)}'` +
-        `&rowlimit=6`;
+        `&rowlimit=50`;
 
       const response: SPHttpClientResponse = await context.spHttpClient.get(url, SPHttpClient.configurations.v1);
 
@@ -116,12 +116,14 @@ const PeopleSearch: React.FC<IPeopleSearchProps> = (props) => {
 
   return (
     <div className={styles.peopleSearch} style={{ minHeight: height }}>
-      <div className={styles.header}>
-        <Icon iconName="People" className={styles.headerIcon} />
-        <span className={styles.headerTitle}>Pessoas</span>
-      </div>
+      {showHeader && (
+        <div className={styles.header}>
+          <Icon iconName="People" className={styles.headerIcon} />
+          <span className={styles.headerTitle}>{headerText || 'Pessoas'}</span>
+        </div>
+      )}
 
-      <div className={styles.searchLabel}>Localizar pessoas</div>
+      <div className={styles.searchLabel}>{searchLabelText || 'Localizar pessoas'}</div>
 
       <div className={styles.searchBox}>
         <input

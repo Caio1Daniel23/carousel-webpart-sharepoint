@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import { Version } from '@microsoft/sp-core-library';
-import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
+import { IPropertyPaneConfiguration, PropertyPaneTextField, PropertyPaneToggle } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 
 import PeopleSearch from './components/PeopleSearch';
@@ -14,7 +14,10 @@ export default class PeopleSearchWebPart extends BaseClientSideWebPart<IPeopleSe
     const element: React.ReactElement = React.createElement(PeopleSearch, {
       context: this.context,
       placeholderText: this.properties.placeholderText,
-      height: !isNaN(heightValue) && heightValue > 0 ? heightValue : 300
+      height: !isNaN(heightValue) && heightValue > 0 ? heightValue : 300,
+      showHeader: this.properties.showHeader,
+      headerText: this.properties.headerText,
+      searchLabelText: this.properties.searchLabelText
     });
 
     ReactDom.render(element, this.domElement);
@@ -39,6 +42,15 @@ export default class PeopleSearchWebPart extends BaseClientSideWebPart<IPeopleSe
             {
               groupName: 'Configurações',
               groupFields: [
+                PropertyPaneToggle('showHeader', {
+                  label: 'Exibir ícone e título "Pessoas"'
+                }),
+                PropertyPaneTextField('headerText', {
+                  label: 'Texto do título (ex: Pessoas)'
+                }),
+                PropertyPaneTextField('searchLabelText', {
+                  label: 'Texto acima do campo de busca (ex: Localizar pessoas)'
+                }),
                 PropertyPaneTextField('placeholderText', {
                   label: 'Texto de exemplo no campo de busca'
                 }),
