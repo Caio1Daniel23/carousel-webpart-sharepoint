@@ -1,0 +1,218 @@
+.explorer {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.breadcrumbSegment {
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumbSep {
+  font-size: 11px;
+  margin: 0 6px;
+  color: #a19f9d;
+}
+
+.breadcrumbButton {
+  border: none;
+  background: transparent;
+  color: var(--themePrimary, #0078d4);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 2px;
+
+  &:disabled {
+    color: #201f1e;
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    text-decoration: underline;
+  }
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #c8c6c4;
+  background: #fff;
+  border-radius: 2px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #201f1e;
+
+  &:hover {
+    background: #f3f2f1;
+  }
+}
+
+.loading,
+.emptyState {
+  padding: 30px 10px;
+  text-align: center;
+  color: #605e5c;
+  font-size: 13px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.folderCard {
+  position: relative;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+  background: #fff;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--themePrimary, #0078d4);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--themePrimary, #0078d4);
+    outline-offset: 2px;
+  }
+}
+
+.folderMedia {
+  position: relative;
+  width: 100%;
+  height: 90px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #faf9f8;
+  overflow: hidden;
+}
+
+.folderBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--themePrimary, #0078d4);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 2px 8px;
+  min-width: 18px;
+  z-index: 1;
+}
+
+.folderIcon {
+  font-size: 34px;
+  color: #d9a441;
+}
+
+.folderImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.folderName {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  color: #201f1e;
+  line-height: 1.3;
+  padding: 12px 10px;
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+
+  &:hover {
+    background: #f3f2f1;
+  }
+
+  & + & {
+    border-top: 1px solid #f3f2f1;
+  }
+}
+
+.fileIcon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.iconPdf { background-color: #d13438; }
+.iconDoc { background-color: #185abd; }
+.iconXls { background-color: #107c41; }
+.iconPpt { background-color: #c43e1c; }
+.iconGeneric { background-color: #605e5c; }
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fileName {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #201f1e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileMeta {
+  font-size: 11.5px;
+  color: #605e5c;
+}

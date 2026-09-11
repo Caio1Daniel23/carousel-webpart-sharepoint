@@ -1,0 +1,31 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "e4f5a6b7-8c9d-40e1-b2f3-4a5b6c7d8e9f",
+  "alias": "KnowledgeExplorerWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart", "TeamsPersonalApp", "TeamsTab", "SharePointFullPage"],
+  "flexibleLayoutSizing": {
+    "supportsDynamicResizing": true,
+    "defaultRowHeight": 20,
+    "defaultColumnWidth": 12
+  },
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": { "default": "Mídia e conteúdo" },
+      "title": { "default": "Explorador de Base de Conhecimento" },
+      "description": { "default": "Navega automaticamente pelas pastas de uma biblioteca, mostrando a quantidade de arquivos em cada categoria." },
+      "officeFabricIconFontName": "FolderList",
+      "properties": {
+        "rootFolderPath": "",
+        "rootTitle": "Base de Conhecimento",
+        "height": 500,
+        "defaultCardImage": "",
+        "customFolderImages": []
+      }
+    }
+  ]
+}

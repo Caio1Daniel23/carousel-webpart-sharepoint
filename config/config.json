@@ -17,12 +17,21 @@
           "manifest": "./src/webparts/peopleSearch/PeopleSearchWebPart.manifest.json"
         }
       ]
+    },
+    "knowledge-explorer-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/knowledgeExplorer/KnowledgeExplorerWebPart.js",
+          "manifest": "./src/webparts/knowledgeExplorer/KnowledgeExplorerWebPart.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},
   "localizedResources": {
     "CarouselWebPartStrings": "lib/webparts/carousel/loc/{locale}.js",
     "PeopleSearchWebPartStrings": "lib/webparts/peopleSearch/loc/{locale}.js",
+    "KnowledgeExplorerWebPartStrings": "lib/webparts/knowledgeExplorer/loc/{locale}.js",
     "PropertyControlStrings": "node_modules/@pnp/spfx-property-controls/lib/loc/{locale}.js"
   }
 }
