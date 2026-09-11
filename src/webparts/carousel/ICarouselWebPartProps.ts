@@ -13,6 +13,8 @@ export interface ISlide {
   ctaOpenNewTab?: boolean;
 }
 
+export type DotsPosition = 'inside' | 'below';
+
 export interface ICarouselWebPartProps {
   slides: ISlide[];
   autoplay: boolean;
@@ -20,4 +22,5 @@ export interface ICarouselWebPartProps {
   height: number; // px
   showArrows: boolean;
   showDots: boolean;
+  dotsPosition: DotsPosition;
 }

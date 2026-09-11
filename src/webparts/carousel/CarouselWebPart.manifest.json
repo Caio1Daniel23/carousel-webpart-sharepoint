@@ -25,7 +25,8 @@
         "transitionTime": 5,
         "height": 400,
         "showArrows": true,
-        "showDots": true
+        "showDots": true,
+        "dotsPosition": "inside"
       }
     }
   ]

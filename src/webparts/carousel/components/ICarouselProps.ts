@@ -1,4 +1,4 @@
-import { ISlide } from '../ICarouselWebPartProps';
+import { ISlide, DotsPosition } from '../ICarouselWebPartProps';
 
 export interface ICarouselProps {
   slides: ISlide[];
@@ -7,4 +7,5 @@ export interface ICarouselProps {
   height: number;
   showArrows: boolean;
   showDots: boolean;
+  dotsPosition: DotsPosition;
 }

@@ -5,7 +5,8 @@ import {
   IPropertyPaneConfiguration,
   PropertyPaneToggle,
   PropertyPaneSlider,
-  PropertyPaneTextField
+  PropertyPaneTextField,
+  PropertyPaneDropdown
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { SPHttpClient } from '@microsoft/sp-http';
@@ -27,7 +28,8 @@ export default class CarouselWebPart extends BaseClientSideWebPart<ICarouselWebP
       transitionTime: this.properties.transitionTime,
       height: !isNaN(heightValue) && heightValue > 0 ? heightValue : 400,
       showArrows: this.properties.showArrows,
-      showDots: this.properties.showDots
+      showDots: this.properties.showDots,
+      dotsPosition: this.properties.dotsPosition || 'inside'
     });
 
     ReactDom.render(element, this.domElement);
@@ -218,6 +220,13 @@ export default class CarouselWebPart extends BaseClientSideWebPart<ICarouselWebP
                 }),
                 PropertyPaneToggle('showDots', {
                   label: 'Exibir indicadores (bolinhas)'
+                }),
+                PropertyPaneDropdown('dotsPosition', {
+                  label: 'Posição das bolinhas',
+                  options: [
+                    { key: 'inside', text: 'Dentro do carrossel (sobre a imagem)' },
+                    { key: 'below', text: 'Abaixo do carrossel (fora da imagem)' }
+                  ]
                 })
               ]
             },
