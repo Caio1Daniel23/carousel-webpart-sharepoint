@@ -86,22 +86,96 @@
   border: 1px solid #edebe9;
   border-radius: 4px;
   background: #fff;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
   overflow: hidden;
-  cursor: pointer;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
 
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border-color: var(--themePrimary, #0078d4);
   }
+}
+
+.folderCardMain {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
 
   &:focus-visible {
     outline: 2px solid var(--themePrimary, #0078d4);
     outline-offset: 2px;
+  }
+}
+
+.folderMenuButton {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.75);
+  }
+}
+
+.imagePickerCallout {
+  padding: 16px;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.imagePickerTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #201f1e;
+}
+
+.imagePickerPreview {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #edebe9;
+}
+
+.imagePickerHint {
+  font-size: 12px;
+  color: #605e5c;
+}
+
+.imagePickerRemove {
+  border: none;
+  background: transparent;
+  color: var(--themePrimary, #0078d4);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
   }
 }
 
@@ -153,21 +227,48 @@
 }
 
 .fileList {
+  --file-columns: 0;
   display: flex;
   flex-direction: column;
   border: 1px solid #edebe9;
   border-radius: 4px;
   overflow: hidden;
+  overflow-x: auto;
+}
+
+.fileListHeader {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(var(--file-columns), minmax(120px, 1fr));
+  gap: 12px;
+  padding: 8px 14px;
+  background: #faf9f8;
+  border-bottom: 1px solid #edebe9;
+}
+
+.fileHeaderName,
+.fileHeaderCell {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #605e5c;
+  white-space: nowrap;
 }
 
 .fileRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(var(--file-columns), minmax(120px, 1fr));
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
   text-decoration: none;
   color: inherit;
   background: #fff;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
 
   &:hover {
     background: #f3f2f1;
@@ -176,6 +277,21 @@
   & + & {
     border-top: 1px solid #f3f2f1;
   }
+}
+
+.fileNameCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fileCell {
+  font-size: 13px;
+  color: #201f1e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fileIcon {

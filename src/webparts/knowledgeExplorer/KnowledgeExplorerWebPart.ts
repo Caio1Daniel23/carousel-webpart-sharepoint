@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
-import { Version } from '@microsoft/sp-core-library';
+import { Version, DisplayMode } from '@microsoft/sp-core-library';
 import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { SPHttpClient } from '@microsoft/sp-http';
@@ -30,10 +30,21 @@ export default class KnowledgeExplorerWebPart extends BaseClientSideWebPart<IKno
       rootTitle: this.properties.rootTitle,
       height: !isNaN(heightValue) && heightValue > 0 ? heightValue : 500,
       defaultCardImage: this.properties.defaultCardImage,
-      customFolderImages: this.properties.customFolderImages || []
+      customFolderImages: this.properties.customFolderImages || [],
+      displayMode: this.displayMode,
+      uploadPickedImage: this.onImageSave.bind(this),
+      onSetFolderImage: this.onSetFolderImage.bind(this),
+      onRemoveFolderImage: this.onRemoveFolderImage.bind(this)
     });
 
     ReactDom.render(element, this.domElement);
+  }
+
+  // Reagir a alternância entre modo de edição/leitura (ex: ao clicar "Editar página" ou
+  // "Publicar/Sair da edição") — sem isso, o componente React não saberia que precisa
+  // mostrar ou esconder os "3 pontinhos" dos cards até a próxima ação que force um render.
+  protected onDisplayModeChanged(oldDisplayMode: DisplayMode): void {
+    this.render();
   }
 
   protected onDispose(): void {
@@ -66,6 +77,25 @@ export default class KnowledgeExplorerWebPart extends BaseClientSideWebPart<IKno
 
     const json = await response.json();
     return json.ServerRelativeUrl ? `${window.location.origin}${json.ServerRelativeUrl}` : '';
+  }
+
+  // Grava (ou substitui) a imagem específica de uma pasta na propriedade da web part.
+  // Chamado direto pelo "3 pontinhos" do card, sem precisar abrir o painel de propriedades —
+  // por isso também atualizamos o painel (caso já esteja aberto) pra manter a lista sincronizada.
+  private onSetFolderImage(folderPath: string, imageUrl: string): void {
+    const current: ICustomFolderImage[] = this.properties.customFolderImages || [];
+    const withoutThisFolder = current.filter((c) => c.folderPath !== folderPath);
+    this.properties.customFolderImages = [...withoutThisFolder, { folderPath, imageUrl }];
+    this.render();
+    this.context.propertyPane.refresh();
+  }
+
+  // Remove a imagem específica de uma pasta — ela volta a usar a imagem padrão.
+  private onRemoveFolderImage(folderPath: string): void {
+    const current: ICustomFolderImage[] = this.properties.customFolderImages || [];
+    this.properties.customFolderImages = current.filter((c) => c.folderPath !== folderPath);
+    this.render();
+    this.context.propertyPane.refresh();
   }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {

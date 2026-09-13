@@ -14,7 +14,7 @@ export interface ICustomFolderImage {
 export interface IFolderItem {
   name: string;
   serverRelativeUrl: string;
-  fileCount: number;
+  fileCount: number | null; // null = ainda calculando em segundo plano
 }
 
 export interface IFileItem {
@@ -22,6 +22,16 @@ export interface IFileItem {
   serverRelativeUrl: string;
   modified: string;
   sizeBytes: number;
+  fieldValues: { [internalName: string]: unknown };
+}
+
+// Uma coluna descoberta dinamicamente a partir da exibição padrão da biblioteca.
+// Assim, se o usuário adicionar/remover uma coluna dessa exibição no SharePoint,
+// o web part reflete automaticamente, sem precisar tocar no código.
+export interface IDynamicColumn {
+  internalName: string;
+  displayName: string;
+  typeAsString: string; // Text, Note, DateTime, Number, Currency, Boolean, Choice, MultiChoice, URL, User, UserMulti...
 }
 
 export interface IBreadcrumbItem {
