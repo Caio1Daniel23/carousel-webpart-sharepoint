@@ -1,0 +1,31 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "53eb19c0-8b96-4f83-9558-95dab2e457e7",
+  "alias": "NoticiasWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart", "TeamsPersonalApp", "TeamsTab", "SharePointFullPage"],
+
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": { "default": "Advanced" },
+      "title": { "default": "Notícias (custom)" },
+      "description": { "default": "Lista todas as notícias do site, em blocos paginados ou em carrossel + lista." },
+      "officeFabricIconFontName": "News",
+      "properties": {
+        "title": "Notícias",
+        "layoutMode": "list",
+        "pageSize": 10,
+        "carouselCount": 5,
+        "showAllNews": false,
+        "compactMode": false,
+        "showAuthor": false,
+        "showViews": false,
+        "showDate": true
+      }
+    }
+  ]
+}

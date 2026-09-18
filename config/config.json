@@ -25,6 +25,14 @@
           "manifest": "./src/webparts/knowledgeExplorer/KnowledgeExplorerWebPart.manifest.json"
         }
       ]
+    },
+    "noticias-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/noticias/NoticiasWebPart.js",
+          "manifest": "./src/webparts/noticias/NoticiasWebPart.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},
@@ -32,6 +40,7 @@
     "CarouselWebPartStrings": "lib/webparts/carousel/loc/{locale}.js",
     "PeopleSearchWebPartStrings": "lib/webparts/peopleSearch/loc/{locale}.js",
     "KnowledgeExplorerWebPartStrings": "lib/webparts/knowledgeExplorer/loc/{locale}.js",
+    "NoticiasWebPartStrings": "lib/webparts/noticias/loc/{locale}.js",
     "PropertyControlStrings": "node_modules/@pnp/spfx-property-controls/lib/loc/{locale}.js"
   }
 }

@@ -1,0 +1,322 @@
+.noticias {
+  --teal-700: #0f5d58;
+  --teal-600: #147b74;
+  --teal-500: #1a968d;
+  --border: #e1ddd2;
+  --text-muted: #6b6a62;
+  --text-faint: #9a978c;
+  --surface-2: #f0efe9;
+
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  color: var(--themePrimaryText, #1c2321);
+
+  // As páginas do SharePoint trazem seletores de tema (ex.: em botões e
+  // links dentro da zona do web part) que às vezes empatam ou ganham em
+  // especificidade de um seletor solto como ".carNav". Prefixando tudo com
+  // ".noticias" (a classe raiz do componente) toda regra abaixo passa a ter
+  // duas classes de especificidade, o que garante que o visual do
+  // protótipo vence o CSS ambiente da página.
+  button {
+    all: unset;
+    box-sizing: border-box;
+    cursor: pointer;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+  }
+}
+
+.count {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.body {
+  margin-top: 4px;
+}
+
+.stateMsg {
+  padding: 24px 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ---- rows ---- */
+.noticias .newsRow {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 18px;
+  padding-block: 18px;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0;
+    color: var(--themePrimary, #147b74);
+  }
+}
+
+.noticias .thumb {
+  width: 240px;
+  height: 150px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex: none;
+  background: linear-gradient(135deg, var(--teal-700), var(--teal-500));
+}
+
+.thumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.newsMeta {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-faint);
+  flex-wrap: wrap;
+}
+
+.noticias.compact {
+  .newsRow {
+    grid-template-columns: 96px 1fr;
+    padding-block: 10px;
+  }
+  .thumb {
+    width: 96px;
+    height: 64px;
+  }
+  .newsRow h3 {
+    font-size: 14px;
+  }
+  .desc {
+    display: none;
+  }
+}
+
+/* ---- pagination ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 20px;
+  flex-wrap: wrap;
+}
+
+.noticias .pageArrow,
+.noticias .pageNum {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 13px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--teal-500);
+    color: var(--teal-700);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+.noticias .pageNum.active {
+  background: var(--teal-600);
+  border-color: var(--teal-600);
+  color: #fff;
+}
+
+.pageEllipsis {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.progressNote {
+  font-size: 12px;
+  color: var(--text-faint);
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* ---- carousel ---- */
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-weight: 700;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+}
+
+.carouselWrap {
+  position: relative;
+  margin: 0 26px 22px;
+}
+
+.carouselTrack {
+  display: flex;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.noticias .carCard {
+  flex: 0 0 calc((100% - 28px) / 3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+
+  @media (max-width: 700px) {
+    flex-basis: calc((100% - 14px) / 2);
+  }
+  @media (max-width: 480px) {
+    flex-basis: 100%;
+  }
+}
+
+.carThumb {
+  width: 100%;
+  height: 130px;
+}
+
+.carBody {
+  padding: 10px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  h3 {
+    font-size: 14px;
+    line-height: 1.3;
+    margin: 0;
+    color: inherit;
+  }
+}
+
+.carDate {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.noticias .carNav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--teal-700);
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(20, 30, 28, 0.22);
+
+  &:hover {
+    border-color: var(--teal-500);
+    background: var(--surface-2);
+  }
+
+  &.prev {
+    left: -18px;
+  }
+  &.next {
+    right: -18px;
+  }
+}
+
+.carDots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 10px;
+
+  span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    display: inline-block;
+
+    &.active {
+      background: var(--teal-500);
+    }
+  }
+}
