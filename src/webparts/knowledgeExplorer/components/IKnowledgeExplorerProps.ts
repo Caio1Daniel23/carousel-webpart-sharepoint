@@ -10,6 +10,8 @@ export interface IKnowledgeExplorerProps {
   height: number;
   defaultCardImage: string;
   customFolderImages: ICustomFolderImage[];
+  sortMode: 'name' | 'countDesc';
+  hiddenFolders: string[];
   displayMode: DisplayMode;
   // Sobe o arquivo/imagem escolhido (upload ou link) e devolve a URL final utilizável —
   // reaproveita a mesma lógica de upload já usada para a imagem padrão.
@@ -19,4 +21,6 @@ export interface IKnowledgeExplorerProps {
   onSetFolderImage: (folderPath: string, imageUrl: string) => void;
   // Remove a imagem específica de uma pasta, voltando a usar a imagem padrão.
   onRemoveFolderImage: (folderPath: string) => void;
+  // Oculta ou reexibe uma pasta específica (alterna a presença dela em hiddenFolders).
+  onToggleFolderHidden: (folderPath: string) => void;
 }

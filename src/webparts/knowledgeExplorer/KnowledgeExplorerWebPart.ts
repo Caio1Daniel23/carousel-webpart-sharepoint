@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import { Version, DisplayMode } from '@microsoft/sp-core-library';
-import { IPropertyPaneConfiguration, PropertyPaneTextField } from '@microsoft/sp-property-pane';
+import { IPropertyPaneConfiguration, PropertyPaneTextField, PropertyPaneDropdown } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { SPHttpClient } from '@microsoft/sp-http';
 
@@ -31,10 +31,13 @@ export default class KnowledgeExplorerWebPart extends BaseClientSideWebPart<IKno
       height: !isNaN(heightValue) && heightValue > 0 ? heightValue : 500,
       defaultCardImage: this.properties.defaultCardImage,
       customFolderImages: this.properties.customFolderImages || [],
+      sortMode: this.properties.sortMode || 'name',
+      hiddenFolders: this.properties.hiddenFolders || [],
       displayMode: this.displayMode,
       uploadPickedImage: this.onImageSave.bind(this),
       onSetFolderImage: this.onSetFolderImage.bind(this),
-      onRemoveFolderImage: this.onRemoveFolderImage.bind(this)
+      onRemoveFolderImage: this.onRemoveFolderImage.bind(this),
+      onToggleFolderHidden: this.onToggleFolderHidden.bind(this)
     });
 
     ReactDom.render(element, this.domElement);
@@ -98,6 +101,19 @@ export default class KnowledgeExplorerWebPart extends BaseClientSideWebPart<IKno
     this.context.propertyPane.refresh();
   }
 
+  // Oculta uma pasta (ou reexibe, se já estava oculta) — chamado direto pelo "3 pontinhos"
+  // do card, igual à imagem. Pastas ocultas continuam existindo normalmente no SharePoint;
+  // só não aparecem para quem visualiza a página (no modo de edição continuam visíveis,
+  // meio apagadas, pra dar pra reencontrar e reexibir).
+  private onToggleFolderHidden(folderPath: string): void {
+    const current: string[] = this.properties.hiddenFolders || [];
+    this.properties.hiddenFolders = current.indexOf(folderPath) >= 0
+      ? current.filter((p) => p !== folderPath)
+      : [...current, folderPath];
+    this.render();
+    this.context.propertyPane.refresh();
+  }
+
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
@@ -137,6 +153,14 @@ export default class KnowledgeExplorerWebPart extends BaseClientSideWebPart<IKno
                 } as any),
                 PropertyPaneTextField('rootTitle', {
                   label: 'Nome exibido no início da navegação (ex: Base de Conhecimento)'
+                }),
+                PropertyPaneDropdown('sortMode', {
+                  label: 'Ordenar os cards por',
+                  options: [
+                    { key: 'name', text: 'Ordem alfabética (A-Z)' },
+                    { key: 'countDesc', text: 'Quantidade de arquivos (maior primeiro)' }
+                  ],
+                  selectedKey: this.properties.sortMode || 'name'
                 }),
                 PropertyPaneTextField('height', {
                   label: 'Altura mínima (px)',

@@ -256,10 +256,13 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
     height,
     defaultCardImage,
     customFolderImages,
+    sortMode,
+    hiddenFolders,
     displayMode,
     uploadPickedImage,
     onSetFolderImage,
-    onRemoveFolderImage
+    onRemoveFolderImage,
+    onToggleFolderHidden
   } = props;
 
   const [breadcrumb, setBreadcrumb] = useState<IBreadcrumbItem[]>([]);
@@ -273,6 +276,8 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
   const [imagePickerOpenFor, setImagePickerOpenFor] = useState<string | null>(null);
   // Referências aos botões de "3 pontinhos" de cada card, usadas como âncora do Callout.
   const menuButtonRefs = useRef<{ [serverRelativeUrl: string]: HTMLButtonElement | null }>({});
+  // Guarda de qual arquivo foi copiado o link por último, pra mostrar o "check" de confirmação.
+  const [copiedFileUrl, setCopiedFileUrl] = useState<string | null>(null);
 
   const getRecursiveFileCount = useCallback(
     (serverRelativeUrl: string): Promise<number> => countFilesRecursive(context, serverRelativeUrl),
@@ -448,10 +453,13 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
     goToBreadcrumb(breadcrumb.length - 2);
   };
 
-  // Abre o arquivo numa janela pop-up. Se for um atalho (.url), primeiro lê o
-  // conteúdo do arquivo pra descobrir o link de verdade pra onde ele aponta,
-  // em vez de abrir/baixar o próprio arquivo de atalho.
-  const openFile = async (file: IFileItem): Promise<void> => {
+  // Descobre o link "de verdade" de um arquivo. Se for um atalho (.url), lê o
+  // conteúdo do arquivo pra descobrir pra onde ele aponta, em vez de usar o link
+  // do próprio arquivo de atalho. Para documentos do Office, usa o link com
+  // ?web=1 (abre direto no visualizador do navegador em vez de baixar/perguntar
+  // qual programa usar) — tanto ao abrir quanto ao copiar, pra manter consistência.
+  // Sempre retorna uma URL absoluta, pronta pra ser colada em outro lugar.
+  const resolveFileTarget = async (file: IFileItem): Promise<string> => {
     let target = file.serverRelativeUrl;
     const ext = file.name.split('.').pop()?.toLowerCase();
 
@@ -468,18 +476,61 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
           target = match[1].trim();
         }
       } catch (err) {
-        // Se não conseguir ler o atalho, cai no comportamento padrão (abre o próprio arquivo).
+        // Se não conseguir ler o atalho, cai no comportamento padrão (usa o link do próprio arquivo).
       }
     } else if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].indexOf(ext || '') >= 0) {
-      // Força abrir no visualizador do navegador em vez de baixar.
       target = `${target}?web=1`;
     }
 
+    // Se já é um link absoluto (ex: o atalho apontava pra um site externo), mantém como está.
+    // Senão, completa com o domínio atual pra que o link funcione fora da página.
+    if (!/^https?:\/\//i.test(target)) {
+      target = `${window.location.origin}${target}`;
+    }
+
+    return target;
+  };
+
+  // Abre o arquivo numa janela pop-up.
+  const openFile = async (file: IFileItem): Promise<void> => {
+    const target = await resolveFileTarget(file);
     window.open(
       target,
       'baseConhecimentoDoc',
       'width=1100,height=800,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no'
     );
+  };
+
+  // Copia o link do arquivo pra área de transferência, com um retorno visual rápido
+  // (o ícone vira um "check" por 2 segundos) confirmando que funcionou.
+  const handleCopyLink = async (file: IFileItem, ev: React.MouseEvent): Promise<void> => {
+    ev.stopPropagation();
+    try {
+      const link = await resolveFileTarget(file);
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(link);
+      } else {
+        // Navegadores mais antigos/sem permissão de clipboard: recurso alternativo
+        // usando um campo de texto temporário e o comando de cópia do navegador.
+        const tempInput = document.createElement('textarea');
+        tempInput.value = link;
+        tempInput.style.position = 'fixed';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        tempInput.focus();
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+      }
+
+      setCopiedFileUrl(file.serverRelativeUrl);
+      window.setTimeout(() => {
+        setCopiedFileUrl((prev) => (prev === file.serverRelativeUrl ? null : prev));
+      }, 2000);
+    } catch (err) {
+      // Se falhar (ex: sem permissão de clipboard), simplesmente não mostra a confirmação.
+    }
   };
 
   // Imagem customizada só se aplica a cards de 1º e 2º nível: quando estamos vendo a
@@ -512,6 +563,33 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
     onRemoveFolderImage(folder.serverRelativeUrl);
     setImagePickerOpenFor(null);
   };
+
+  const isFolderHidden = (folder: IFolderItem): boolean => (hiddenFolders || []).indexOf(folder.serverRelativeUrl) >= 0;
+
+  const handleToggleHidden = (folder: IFolderItem): void => {
+    onToggleFolderHidden(folder.serverRelativeUrl);
+    setImagePickerOpenFor(null);
+  };
+
+  // No modo de leitura (visão normal da página), pastas ocultas simplesmente não aparecem.
+  // No modo de edição, continuam aparecendo (mais apagadas) pra dar pra reencontrar e reexibir.
+  const visibleFolders = isEditMode ? folders : folders.filter((f) => !isFolderHidden(f));
+
+  // Ordena os cards. Quando o modo é "por quantidade" mas ainda faltam contagens chegando
+  // (mostrando "…"), mantém a ordem alfabética por enquanto — senão os cards ficariam
+  // pulando de lugar na tela conforme cada contagem terminasse de carregar.
+  const sortedFolders = (() => {
+    const list = [...visibleFolders];
+    const byName = (a: IFolderItem, b: IFolderItem): number => a.name.localeCompare(b.name, 'pt-BR');
+
+    if (sortMode === 'countDesc') {
+      const allCountsReady = list.every((f) => f.fileCount !== null);
+      if (allCountsReady) {
+        return list.sort((a, b) => (b.fileCount || 0) - (a.fileCount || 0));
+      }
+    }
+    return list.sort(byName);
+  })();
 
   if (!rootFolderPath) {
     return (
@@ -559,19 +637,24 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
 
       {state === 'loaded' && (
         <>
-          {folders.length > 0 && (
+          {sortedFolders.length > 0 && (
             <div className={styles.grid}>
-              {folders.map((folder) => {
+              {sortedFolders.map((folder) => {
                 const folderImage = getFolderImage(folder);
                 const customImageUrl = getCustomImageUrl(folder);
-                const showMenuButton = isEditMode && allowCustomImage;
+                const hidden = isFolderHidden(folder);
+                const showMenuButton = isEditMode;
                 const isPickerOpen = imagePickerOpenFor === folder.serverRelativeUrl;
 
                 return (
-                  <div key={folder.serverRelativeUrl} className={styles.folderCard}>
+                  <div
+                    key={folder.serverRelativeUrl}
+                    className={`${styles.folderCard} ${hidden ? styles.folderCardHidden : ''}`}
+                  >
                     <button className={styles.folderCardMain} onClick={() => openFolder(folder)}>
                       <span className={styles.folderMedia}>
                         <span className={styles.folderBadge}>{folder.fileCount === null ? '…' : folder.fileCount}</span>
+                        {hidden && <span className={styles.folderHiddenBadge}>Oculto</span>}
                         {folderImage ? (
                           <img className={styles.folderImage} src={folderImage} alt="" />
                         ) : (
@@ -591,8 +674,8 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
                           ev.stopPropagation();
                           setImagePickerOpenFor((prev) => (prev === folder.serverRelativeUrl ? null : folder.serverRelativeUrl));
                         }}
-                        aria-label={`Escolher imagem para ${folder.name}`}
-                        title="Escolher imagem desta pasta"
+                        aria-label={`Opções da pasta ${folder.name}`}
+                        title="Opções desta pasta"
                       >
                         <Icon iconName="MoreVertical" />
                       </button>
@@ -612,28 +695,36 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
                         }}
                       >
                         <div className={styles.imagePickerCallout}>
-                          <div className={styles.imagePickerTitle}>Imagem desta pasta</div>
-                          {customImageUrl ? (
-                            <img className={styles.imagePickerPreview} src={customImageUrl} alt="" />
-                          ) : (
-                            <div className={styles.imagePickerHint}>Usando a imagem padrão.</div>
+                          {allowCustomImage && (
+                            <>
+                              <div className={styles.imagePickerTitle}>Imagem desta pasta</div>
+                              {customImageUrl ? (
+                                <img className={styles.imagePickerPreview} src={customImageUrl} alt="" />
+                              ) : (
+                                <div className={styles.imagePickerHint}>Usando a imagem padrão.</div>
+                              )}
+                              <FilePicker
+                                {...({
+                                  context,
+                                  buttonIcon: 'Photo2',
+                                  buttonLabel: customImageUrl ? 'Alterar imagem' : 'Escolher imagem',
+                                  accepts: ['.gif', '.jpg', '.jpeg', '.png', '.webp', '.svg'],
+                                  onSave: (result: IFilePickerResult): void => {
+                                    handleImagePicked(folder, result).catch(() => undefined);
+                                  }
+                                } as any)}
+                              />
+                              {customImageUrl && (
+                                <button className={styles.imagePickerRemove} onClick={() => handleRemoveFolderImage(folder)}>
+                                  Usar imagem padrão
+                                </button>
+                              )}
+                              <div className={styles.calloutDivider} />
+                            </>
                           )}
-                          <FilePicker
-                            {...({
-                              context,
-                              buttonIcon: 'Photo2',
-                              buttonLabel: customImageUrl ? 'Alterar imagem' : 'Escolher imagem',
-                              accepts: ['.gif', '.jpg', '.jpeg', '.png', '.webp', '.svg'],
-                              onSave: (result: IFilePickerResult): void => {
-                                handleImagePicked(folder, result).catch(() => undefined);
-                              }
-                            } as any)}
-                          />
-                          {customImageUrl && (
-                            <button className={styles.imagePickerRemove} onClick={() => handleRemoveFolderImage(folder)}>
-                              Usar imagem padrão
-                            </button>
-                          )}
+                          <button className={styles.imagePickerRemove} onClick={() => handleToggleHidden(folder)}>
+                            {hidden ? 'Mostrar esta pasta novamente' : 'Ocultar esta pasta'}
+                          </button>
                         </div>
                       </Callout>
                     )}
@@ -658,33 +749,45 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
               </div>
               {files.map((file) => {
                 const iconInfo = fileIconInfo(file.name);
+                const isCopied = copiedFileUrl === file.serverRelativeUrl;
                 return (
-                  <button
-                    key={file.serverRelativeUrl}
-                    className={styles.fileRow}
-                    onClick={() => {
-                      openFile(file).catch(() => undefined);
-                    }}
-                  >
-                    <span className={styles.fileNameCell}>
-                      <span className={`${styles.fileIcon} ${iconInfo.className}`}>{iconInfo.label}</span>
-                      <span className={styles.fileInfo}>
-                        <span className={styles.fileName}>{file.name}</span>
-                        <span className={styles.fileMeta}>{file.sizeBytes ? formatSize(file.sizeBytes) : ''}</span>
+                  <div key={file.serverRelativeUrl} className={styles.fileRow}>
+                    <button
+                      className={styles.fileRowMain}
+                      onClick={() => {
+                        openFile(file).catch(() => undefined);
+                      }}
+                    >
+                      <span className={styles.fileNameCell}>
+                        <span className={`${styles.fileIcon} ${iconInfo.className}`}>{iconInfo.label}</span>
+                        <span className={styles.fileInfo}>
+                          <span className={styles.fileName}>{file.name}</span>
+                          <span className={styles.fileMeta}>{file.sizeBytes ? formatSize(file.sizeBytes) : ''}</span>
+                        </span>
                       </span>
-                    </span>
-                    {columns.map((col) => (
-                      <span key={col.internalName} className={styles.fileCell}>
-                        {formatFieldValue(file.fieldValues[col.internalName], col.typeAsString)}
-                      </span>
-                    ))}
-                  </button>
+                      {columns.map((col) => (
+                        <span key={col.internalName} className={styles.fileCell}>
+                          {formatFieldValue(file.fieldValues[col.internalName], col.typeAsString)}
+                        </span>
+                      ))}
+                    </button>
+                    <button
+                      className={`${styles.fileCopyButton} ${isCopied ? styles.fileCopyButtonCopied : ''}`}
+                      onClick={(ev): void => {
+                        handleCopyLink(file, ev).catch(() => undefined);
+                      }}
+                      aria-label={isCopied ? `Link de ${file.name} copiado` : `Copiar link de ${file.name}`}
+                      title={isCopied ? 'Link copiado!' : 'Copiar link'}
+                    >
+                      <Icon iconName={isCopied ? 'CheckMark' : 'Link'} />
+                    </button>
+                  </div>
                 );
               })}
             </div>
           )}
 
-          {folders.length === 0 && files.length === 0 && (
+          {sortedFolders.length === 0 && files.length === 0 && (
             <div className={styles.emptyState}>Esta pasta está vazia.</div>
           )}
         </>

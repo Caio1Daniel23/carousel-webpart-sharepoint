@@ -4,6 +4,8 @@ export interface IKnowledgeExplorerWebPartProps {
   height: number;
   defaultCardImage: string;
   customFolderImages: ICustomFolderImage[];
+  sortMode: 'name' | 'countDesc';
+  hiddenFolders: string[];
 }
 
 export interface ICustomFolderImage {

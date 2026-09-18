@@ -24,7 +24,9 @@
         "rootTitle": "Base de Conhecimento",
         "height": 500,
         "defaultCardImage": "",
-        "customFolderImages": []
+        "customFolderImages": [],
+        "sortMode": "name",
+        "hiddenFolders": []
       }
     }
   ]
