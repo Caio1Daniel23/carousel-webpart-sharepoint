@@ -13,6 +13,7 @@ define([], function () {
     CompactModeFieldLabel: 'Modo compacto',
     ShowAuthorFieldLabel: 'Mostrar autor',
     ShowViewsFieldLabel: 'Mostrar número de visualizações',
-    ShowDateFieldLabel: 'Mostrar data de publicação'
+    ShowDateFieldLabel: 'Mostrar data de publicação',
+    ShowIconsFieldLabel: 'Mostrar ícones (data/autor/visualizações)'
   };
 });

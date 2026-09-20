@@ -24,7 +24,8 @@
         "compactMode": false,
         "showAuthor": false,
         "showViews": false,
-        "showDate": true
+        "showDate": true,
+        "showIcons": true
       }
     }
   ]

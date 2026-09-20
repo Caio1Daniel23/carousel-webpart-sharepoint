@@ -165,10 +165,95 @@
 
 .imagePickerCallout {
   padding: 16px;
-  width: 220px;
+  width: 240px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.peopleChipsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.peopleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f3f2f1;
+  border-radius: 12px;
+  padding: 3px 6px 3px 10px;
+  font-size: 12px;
+  color: #201f1e;
+  max-width: 100%;
+}
+
+.peopleChipRemove {
+  border: none;
+  background: transparent;
+  color: #605e5c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 10px;
+  border-radius: 50%;
+
+  &:hover {
+    background: #e1dfdd;
+    color: #201f1e;
+  }
+}
+
+.peopleSearchInput {
+  width: 100%;
+  box-sizing: border-box;
+  height: 30px;
+  border: 1px solid #c8c6c4;
+  border-radius: 2px;
+  padding: 0 8px;
+  font-size: 12.5px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--themePrimary, #0078d4);
+  }
+}
+
+.peopleResultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 140px;
+  overflow-y: auto;
+  border: 1px solid #edebe9;
+  border-radius: 2px;
+}
+
+.peopleResultOption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: none;
+  background: #fff;
+  text-align: left;
+  padding: 6px 8px;
+  cursor: pointer;
+
+  &:hover {
+    background: #f3f2f1;
+  }
+
+  & + & {
+    border-top: 1px solid #f3f2f1;
+  }
+}
+
+.peopleResultEmail {
+  font-size: 11px;
+  color: #605e5c;
 }
 
 .imagePickerTitle {

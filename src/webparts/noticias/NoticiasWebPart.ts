@@ -24,6 +24,7 @@ export interface INoticiasWebPartProps {
   showAuthor: boolean;
   showViews: boolean;
   showDate: boolean;
+  showIcons: boolean;
 }
 
 export default class NoticiasWebPart extends BaseClientSideWebPart<INoticiasWebPartProps> {
@@ -38,6 +39,7 @@ export default class NoticiasWebPart extends BaseClientSideWebPart<INoticiasWebP
     if (this.properties.showAuthor === undefined) this.properties.showAuthor = false;
     if (this.properties.showViews === undefined) this.properties.showViews = false;
     if (this.properties.showDate === undefined) this.properties.showDate = true;
+    if (this.properties.showIcons === undefined) this.properties.showIcons = true;
     return Promise.resolve();
   }
 
@@ -52,7 +54,8 @@ export default class NoticiasWebPart extends BaseClientSideWebPart<INoticiasWebP
       compactMode: this.properties.compactMode,
       showAuthor: this.properties.showAuthor,
       showViews: this.properties.showViews,
-      showDate: this.properties.showDate
+      showDate: this.properties.showDate,
+      showIcons: this.properties.showIcons
     });
 
     ReactDom.render(element, this.domElement);
@@ -127,7 +130,8 @@ export default class NoticiasWebPart extends BaseClientSideWebPart<INoticiasWebP
                 PropertyPaneToggle('compactMode', { label: strings.CompactModeFieldLabel }),
                 PropertyPaneToggle('showDate', { label: strings.ShowDateFieldLabel }),
                 PropertyPaneToggle('showAuthor', { label: strings.ShowAuthorFieldLabel }),
-                PropertyPaneToggle('showViews', { label: strings.ShowViewsFieldLabel })
+                PropertyPaneToggle('showViews', { label: strings.ShowViewsFieldLabel }),
+                PropertyPaneToggle('showIcons', { label: strings.ShowIconsFieldLabel })
               ]
             }
           ]

@@ -6,11 +6,25 @@ export interface IKnowledgeExplorerWebPartProps {
   customFolderImages: ICustomFolderImage[];
   sortMode: 'name' | 'countDesc';
   hiddenFolders: string[];
+  hiddenFolderExceptions: IHiddenFolderException[];
 }
 
 export interface ICustomFolderImage {
   folderPath: string;
   imageUrl: string;
+}
+
+// Um usuário específico que pode ver uma pasta mesmo com ela oculta para todo mundo.
+export interface IHiddenFolderAllowedUser {
+  loginName: string; // identificador único usado pra comparar com o usuário logado (claims/UPN)
+  email: string;
+  displayName: string;
+}
+
+// A lista de exceções de uma pasta oculta específica.
+export interface IHiddenFolderException {
+  folderPath: string;
+  allowedUsers: IHiddenFolderAllowedUser[];
 }
 
 export interface IFolderItem {

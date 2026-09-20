@@ -8,7 +8,13 @@ import { FilePicker } from '@pnp/spfx-property-controls/lib/propertyFields/fileP
 import { IFilePickerResult } from '@pnp/spfx-property-controls/lib/propertyFields/filePicker/filePickerControls/FilePicker.types';
 import styles from './KnowledgeExplorer.module.scss';
 import { IKnowledgeExplorerProps } from './IKnowledgeExplorerProps';
-import { IFolderItem, IFileItem, IBreadcrumbItem, IDynamicColumn } from '../IKnowledgeExplorerWebPartProps';
+import {
+  IFolderItem,
+  IFileItem,
+  IBreadcrumbItem,
+  IDynamicColumn,
+  IHiddenFolderAllowedUser
+} from '../IKnowledgeExplorerWebPartProps';
 
 type LoadState = 'loading' | 'loaded' | 'error';
 
@@ -248,6 +254,60 @@ const countFilesRecursive = async (
   return total;
 };
 
+// Resultado de uma busca de pessoa, já no formato usado internamente pelo componente.
+interface IPeopleSearchResult {
+  key: string; // login name (claims), usado pra comparar com o usuário logado
+  displayText: string;
+  email: string;
+}
+
+// Busca pessoas usando o serviço nativo do SharePoint (o mesmo mecanismo por trás dos
+// campos de Pessoa do próprio SharePoint) — evita depender do Microsoft Graph e da
+// permissão extra (User.Read.All) que isso exigiria, seguindo o mesmo princípio já
+// usado na web part de Busca de Pessoas deste projeto.
+const searchPeople = async (
+  context: IKnowledgeExplorerProps['context'],
+  queryString: string
+): Promise<IPeopleSearchResult[]> => {
+  if (!queryString || queryString.trim().length < 2) return [];
+  try {
+    const url =
+      `${context.pageContext.web.absoluteUrl}/_api/SP.UI.ApplicationPages.ClientPeoplePickerWebServiceInterface.clientPeoplePickerSearchUser`;
+    const body = JSON.stringify({
+      queryParams: {
+        AllowEmailAddresses: true,
+        AllowMultipleEntities: false,
+        MaximumEntitySuggestions: 8,
+        PrincipalSource: 15,
+        PrincipalType: 1,
+        QueryString: queryString
+      }
+    });
+    const response: SPHttpClientResponse = await context.spHttpClient.post(url, SPHttpClient.configurations.v1, {
+      headers: { Accept: 'application/json;odata=nometadata', 'Content-Type': 'application/json;odata=nometadata' },
+      body
+    });
+    if (!response.ok) return [];
+    const json = await response.json();
+    const rawValue: string = json.value;
+    if (!rawValue) return [];
+
+    const parsed: { Key: string; DisplayText: string; EntityData?: { Email?: string } }[] = JSON.parse(rawValue);
+    return parsed
+      .filter((item) => !!item.Key)
+      .map((item) => {
+        const keyParts = item.Key.split('|');
+        return {
+          key: item.Key,
+          displayText: item.DisplayText,
+          email: (item.EntityData && item.EntityData.Email) || keyParts[keyParts.length - 1] || ''
+        };
+      });
+  } catch (err) {
+    return [];
+  }
+};
+
 const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
   const {
     context,
@@ -258,11 +318,13 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
     customFolderImages,
     sortMode,
     hiddenFolders,
+    hiddenFolderExceptions,
     displayMode,
     uploadPickedImage,
     onSetFolderImage,
     onRemoveFolderImage,
-    onToggleFolderHidden
+    onToggleFolderHidden,
+    onSetFolderAllowedUsers
   } = props;
 
   const [breadcrumb, setBreadcrumb] = useState<IBreadcrumbItem[]>([]);
@@ -278,6 +340,20 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
   const menuButtonRefs = useRef<{ [serverRelativeUrl: string]: HTMLButtonElement | null }>({});
   // Guarda de qual arquivo foi copiado o link por último, pra mostrar o "check" de confirmação.
   const [copiedFileUrl, setCopiedFileUrl] = useState<string | null>(null);
+
+  // Estado da busca de pessoas usada pra adicionar exceções a uma pasta oculta.
+  const [peopleQuery, setPeopleQuery] = useState<string>('');
+  const [peopleResults, setPeopleResults] = useState<IPeopleSearchResult[]>([]);
+  const [peopleSearching, setPeopleSearching] = useState<boolean>(false);
+  const peopleSearchTimeout = useRef<number | undefined>(undefined);
+
+  // Limpa a busca de pessoas sempre que o menu de "3 pontinhos" muda de pasta ou fecha —
+  // sem isso, o texto/resultados da pasta anterior ficariam aparecendo na próxima que abrir.
+  useEffect(() => {
+    setPeopleQuery('');
+    setPeopleResults([]);
+    setPeopleSearching(false);
+  }, [imagePickerOpenFor]);
 
   const getRecursiveFileCount = useCallback(
     (serverRelativeUrl: string): Promise<number> => countFilesRecursive(context, serverRelativeUrl),
@@ -568,12 +644,81 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
 
   const handleToggleHidden = (folder: IFolderItem): void => {
     onToggleFolderHidden(folder.serverRelativeUrl);
-    setImagePickerOpenFor(null);
   };
 
-  // No modo de leitura (visão normal da página), pastas ocultas simplesmente não aparecem.
-  // No modo de edição, continuam aparecendo (mais apagadas) pra dar pra reencontrar e reexibir.
-  const visibleFolders = isEditMode ? folders : folders.filter((f) => !isFolderHidden(f));
+  // Lista de usuários que continuam vendo esta pasta mesmo com ela oculta para todo mundo.
+  const getAllowedUsers = (folder: IFolderItem): IHiddenFolderAllowedUser[] =>
+    (hiddenFolderExceptions || []).filter((e) => e.folderPath === folder.serverRelativeUrl)[0]?.allowedUsers || [];
+
+  // Uma pasta não-oculta é visível pra todo mundo, como sempre. Uma pasta oculta só aparece
+  // pro usuário logado se o login OU o e-mail dele estiver na lista de exceções da pasta —
+  // comparação sem diferenciar maiúsculas/minúsculas, já que claims/e-mail variam de origem.
+  const isVisibleToCurrentUser = (folder: IFolderItem): boolean => {
+    if (!isFolderHidden(folder)) return true;
+
+    const allowed = getAllowedUsers(folder);
+    if (allowed.length === 0) return false;
+
+    const currentLogin = (context.pageContext.user.loginName || '').toLowerCase();
+    const currentEmail = (context.pageContext.user.email || '').toLowerCase();
+
+    return allowed.some(
+      (u) =>
+        (!!u.loginName && u.loginName.toLowerCase() === currentLogin) ||
+        (!!u.email && !!currentEmail && u.email.toLowerCase() === currentEmail)
+    );
+  };
+
+  const handleAddAllowedUser = (folder: IFolderItem, person: IPeopleSearchResult): void => {
+    const current = getAllowedUsers(folder);
+    if (current.some((u) => u.loginName === person.key)) return;
+    const updated: IHiddenFolderAllowedUser[] = [
+      ...current,
+      { loginName: person.key, email: person.email, displayName: person.displayText }
+    ];
+    onSetFolderAllowedUsers(folder.serverRelativeUrl, updated);
+    setPeopleQuery('');
+    setPeopleResults([]);
+  };
+
+  const handleRemoveAllowedUser = (folder: IFolderItem, loginName: string): void => {
+    const updated = getAllowedUsers(folder).filter((u) => u.loginName !== loginName);
+    onSetFolderAllowedUsers(folder.serverRelativeUrl, updated);
+  };
+
+  // Busca pessoas com um pequeno atraso (debounce) enquanto o usuário digita, pra não
+  // disparar uma chamada REST a cada tecla.
+  const handlePeopleQueryChange = (folder: IFolderItem, value: string): void => {
+    setPeopleQuery(value);
+
+    if (peopleSearchTimeout.current) {
+      window.clearTimeout(peopleSearchTimeout.current);
+    }
+
+    if (!value || value.trim().length < 2) {
+      setPeopleResults([]);
+      setPeopleSearching(false);
+      return;
+    }
+
+    setPeopleSearching(true);
+    peopleSearchTimeout.current = window.setTimeout(() => {
+      searchPeople(context, value)
+        .then((results) => {
+          const alreadyAdded = getAllowedUsers(folder).map((u) => u.loginName);
+          setPeopleResults(results.filter((r) => alreadyAdded.indexOf(r.key) === -1));
+          setPeopleSearching(false);
+        })
+        .catch(() => {
+          setPeopleSearching(false);
+        });
+    }, 350) as unknown as number;
+  };
+
+  // No modo de leitura (visão normal da página), pastas ocultas só aparecem pra quem está
+  // na lista de exceções daquela pasta. No modo de edição, continuam todas aparecendo (mais
+  // apagadas as ocultas) pra dar pra gerenciar quem vê o quê.
+  const visibleFolders = isEditMode ? folders : folders.filter((f) => isVisibleToCurrentUser(f));
 
   // Ordena os cards. Quando o modo é "por quantidade" mas ainda faltam contagens chegando
   // (mostrando "…"), mantém a ordem alfabética por enquanto — senão os cards ficariam
@@ -643,18 +788,22 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
                 const folderImage = getFolderImage(folder);
                 const customImageUrl = getCustomImageUrl(folder);
                 const hidden = isFolderHidden(folder);
+                // O visual "apagado + Oculto" é só uma ajuda pra você (no modo de edição) enxergar
+                // quais pastas estão ocultas. Pra quem tem uma exceção e está só visualizando a
+                // página, a pasta precisa aparecer 100% normal — sem esse indicativo.
+                const showHiddenStyling = isEditMode && hidden;
                 const showMenuButton = isEditMode;
                 const isPickerOpen = imagePickerOpenFor === folder.serverRelativeUrl;
 
                 return (
                   <div
                     key={folder.serverRelativeUrl}
-                    className={`${styles.folderCard} ${hidden ? styles.folderCardHidden : ''}`}
+                    className={`${styles.folderCard} ${showHiddenStyling ? styles.folderCardHidden : ''}`}
                   >
                     <button className={styles.folderCardMain} onClick={() => openFolder(folder)}>
                       <span className={styles.folderMedia}>
                         <span className={styles.folderBadge}>{folder.fileCount === null ? '…' : folder.fileCount}</span>
-                        {hidden && <span className={styles.folderHiddenBadge}>Oculto</span>}
+                        {showHiddenStyling && <span className={styles.folderHiddenBadge}>Oculto</span>}
                         {folderImage ? (
                           <img className={styles.folderImage} src={folderImage} alt="" />
                         ) : (
@@ -725,6 +874,60 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
                           <button className={styles.imagePickerRemove} onClick={() => handleToggleHidden(folder)}>
                             {hidden ? 'Mostrar esta pasta novamente' : 'Ocultar esta pasta'}
                           </button>
+
+                          {hidden && (
+                            <>
+                              <div className={styles.calloutDivider} />
+                              <div className={styles.imagePickerTitle}>Quem mais pode ver esta pasta</div>
+
+                              {getAllowedUsers(folder).length > 0 ? (
+                                <div className={styles.peopleChipsList}>
+                                  {getAllowedUsers(folder).map((u) => (
+                                    <span key={u.loginName} className={styles.peopleChip}>
+                                      {u.displayName}
+                                      <button
+                                        className={styles.peopleChipRemove}
+                                        onClick={() => handleRemoveAllowedUser(folder, u.loginName)}
+                                        aria-label={`Remover ${u.displayName}`}
+                                        title="Remover"
+                                      >
+                                        <Icon iconName="Cancel" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className={styles.imagePickerHint}>
+                                  Ninguém adicionado — a pasta fica oculta para todos.
+                                </div>
+                              )}
+
+                              <input
+                                className={styles.peopleSearchInput}
+                                type="text"
+                                placeholder="Digite um nome ou e-mail..."
+                                value={peopleQuery}
+                                onChange={(ev): void => handlePeopleQueryChange(folder, ev.target.value)}
+                              />
+
+                              {peopleSearching && <div className={styles.imagePickerHint}>Procurando...</div>}
+
+                              {!peopleSearching && peopleResults.length > 0 && (
+                                <div className={styles.peopleResultsList}>
+                                  {peopleResults.map((r) => (
+                                    <button
+                                      key={r.key}
+                                      className={styles.peopleResultOption}
+                                      onClick={() => handleAddAllowedUser(folder, r)}
+                                    >
+                                      <span>{r.displayText}</span>
+                                      {r.email && <span className={styles.peopleResultEmail}>{r.email}</span>}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
                       </Callout>
                     )}

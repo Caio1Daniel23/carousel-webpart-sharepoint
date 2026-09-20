@@ -6,7 +6,12 @@ import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { SPHttpClient } from '@microsoft/sp-http';
 
 import KnowledgeExplorer from './components/KnowledgeExplorer';
-import { IKnowledgeExplorerWebPartProps, ICustomFolderImage } from './IKnowledgeExplorerWebPartProps';
+import {
+  IKnowledgeExplorerWebPartProps,
+  ICustomFolderImage,
+  IHiddenFolderException,
+  IHiddenFolderAllowedUser
+} from './IKnowledgeExplorerWebPartProps';
 
 import { PropertyFieldFolderPicker } from '@pnp/spfx-property-controls/lib/PropertyFieldFolderPicker';
 import { PropertyFieldFilePicker } from '@pnp/spfx-property-controls/lib/PropertyFieldFilePicker';
@@ -33,11 +38,13 @@ export default class KnowledgeExplorerWebPart extends BaseClientSideWebPart<IKno
       customFolderImages: this.properties.customFolderImages || [],
       sortMode: this.properties.sortMode || 'name',
       hiddenFolders: this.properties.hiddenFolders || [],
+      hiddenFolderExceptions: this.properties.hiddenFolderExceptions || [],
       displayMode: this.displayMode,
       uploadPickedImage: this.onImageSave.bind(this),
       onSetFolderImage: this.onSetFolderImage.bind(this),
       onRemoveFolderImage: this.onRemoveFolderImage.bind(this),
-      onToggleFolderHidden: this.onToggleFolderHidden.bind(this)
+      onToggleFolderHidden: this.onToggleFolderHidden.bind(this),
+      onSetFolderAllowedUsers: this.onSetFolderAllowedUsers.bind(this)
     });
 
     ReactDom.render(element, this.domElement);
@@ -110,6 +117,17 @@ export default class KnowledgeExplorerWebPart extends BaseClientSideWebPart<IKno
     this.properties.hiddenFolders = current.indexOf(folderPath) >= 0
       ? current.filter((p) => p !== folderPath)
       : [...current, folderPath];
+    this.render();
+    this.context.propertyPane.refresh();
+  }
+
+  // Define quais usuários específicos continuam vendo uma pasta mesmo com ela oculta para
+  // todos os outros. Uma lista vazia remove a exceção da pasta por completo (fica só oculta).
+  private onSetFolderAllowedUsers(folderPath: string, users: IHiddenFolderAllowedUser[]): void {
+    const current: IHiddenFolderException[] = this.properties.hiddenFolderExceptions || [];
+    const withoutThisFolder = current.filter((e) => e.folderPath !== folderPath);
+    this.properties.hiddenFolderExceptions =
+      users.length > 0 ? [...withoutThisFolder, { folderPath, allowedUsers: users }] : withoutThisFolder;
     this.render();
     this.context.propertyPane.refresh();
   }

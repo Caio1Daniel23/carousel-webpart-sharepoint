@@ -54,7 +54,7 @@
 /* ---- rows ---- */
 .noticias .newsRow {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 280px 1fr;
   gap: 18px;
   padding-block: 18px;
   border-bottom: 1px solid var(--border);
@@ -75,8 +75,8 @@
 }
 
 .noticias .thumb {
-  width: 240px;
-  height: 150px;
+  width: 280px;
+  height: 170px;
   border-radius: 6px;
   overflow: hidden;
   flex: none;

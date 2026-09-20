@@ -13,6 +13,7 @@ declare interface INoticiasWebPartStrings {
   ShowAuthorFieldLabel: string;
   ShowViewsFieldLabel: string;
   ShowDateFieldLabel: string;
+  ShowIconsFieldLabel: string;
 }
 
 declare module 'NoticiasWebPartStrings' {

@@ -13,4 +13,5 @@ export interface INoticiasProps {
   showAuthor: boolean;
   showViews: boolean;
   showDate: boolean;
+  showIcons: boolean;
 }

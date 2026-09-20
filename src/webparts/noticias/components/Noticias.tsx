@@ -23,6 +23,15 @@ function initials(title: string): string {
     .join('');
 }
 
+// O texto de "Descrição" vem do que o autor da notícia escreveu no
+// SharePoint, e às vezes inclui emoji (✈️, 🤝, etc.) digitados por ele.
+// Remove esses emoji do resumo exibido na lista, mantendo o texto normal.
+const EMOJI_REGEX = /[\u{1F1E6}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{2190}-\u{21FF}️‍]/gu;
+
+function stripEmoji(text: string): string {
+  return (text || '').replace(EMOJI_REGEX, '').replace(/\s{2,}/g, ' ').trim();
+}
+
 export default class Noticias extends React.Component<INoticiasProps, INoticiasState> {
   constructor(props: INoticiasProps) {
     super(props);
@@ -80,13 +89,28 @@ export default class Noticias extends React.Component<INoticiasProps, INoticiasS
   }
 
   private renderMeta(item: INewsItem): JSX.Element | null {
-    const { showDate, showAuthor, showViews } = this.props;
+    const { showDate, showAuthor, showViews, showIcons } = this.props;
     if (!showDate && !showAuthor && !showViews) return null;
     return (
       <div className={styles.newsMeta}>
-        {showDate && <span>🗓 {formatDatePt(item.publishedDate)}</span>}
-        {showAuthor && item.author && <span>✎ {item.author}</span>}
-        {showViews && <span>👁 {item.views}</span>}
+        {showDate && (
+          <span>
+            {showIcons && <span aria-hidden="true">🗓 </span>}
+            {formatDatePt(item.publishedDate)}
+          </span>
+        )}
+        {showAuthor && item.author && (
+          <span>
+            {showIcons ? <span aria-hidden="true">✎ </span> : 'Por '}
+            {item.author}
+          </span>
+        )}
+        {showViews && (
+          <span>
+            {showIcons && <span aria-hidden="true">👁 </span>}
+            {item.views} visualizações
+          </span>
+        )}
       </div>
     );
   }
@@ -97,7 +121,7 @@ export default class Noticias extends React.Component<INoticiasProps, INoticiasS
         <div className={styles.thumb}>{this.renderThumb(item)}</div>
         <div>
           <h3>{item.title}</h3>
-          {item.description && <div className={styles.desc}>{item.description}</div>}
+          {item.description && <div className={styles.desc}>{stripEmoji(item.description)}</div>}
           {this.renderMeta(item)}
         </div>
       </a>
