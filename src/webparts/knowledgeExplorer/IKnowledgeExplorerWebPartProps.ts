@@ -7,6 +7,7 @@ export interface IKnowledgeExplorerWebPartProps {
   sortMode: 'name' | 'countDesc';
   hiddenFolders: string[];
   hiddenFolderExceptions: IHiddenFolderException[];
+  folderDescriptions: IFolderDescription[];
 }
 
 export interface ICustomFolderImage {
@@ -25,6 +26,13 @@ export interface IHiddenFolderAllowedUser {
 export interface IHiddenFolderException {
   folderPath: string;
   allowedUsers: IHiddenFolderAllowedUser[];
+}
+
+// Um texto de apresentação de uma pasta específica, mostrado acima da lista de
+// subpastas/arquivos ao entrar nela. Sem entrada aqui, nada é exibido.
+export interface IFolderDescription {
+  folderPath: string;
+  description: string;
 }
 
 export interface IFolderItem {

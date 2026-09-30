@@ -1,6 +1,11 @@
 import { DisplayMode } from '@microsoft/sp-core-library';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
-import { ICustomFolderImage, IHiddenFolderException, IHiddenFolderAllowedUser } from '../IKnowledgeExplorerWebPartProps';
+import {
+  ICustomFolderImage,
+  IHiddenFolderException,
+  IHiddenFolderAllowedUser,
+  IFolderDescription
+} from '../IKnowledgeExplorerWebPartProps';
 import { IFilePickerResult } from '@pnp/spfx-property-controls/lib/propertyFields/filePicker/filePickerControls/FilePicker.types';
 
 export interface IKnowledgeExplorerProps {
@@ -13,6 +18,7 @@ export interface IKnowledgeExplorerProps {
   sortMode: 'name' | 'countDesc';
   hiddenFolders: string[];
   hiddenFolderExceptions: IHiddenFolderException[];
+  folderDescriptions: IFolderDescription[];
   displayMode: DisplayMode;
   // Sobe o arquivo/imagem escolhido (upload ou link) e devolve a URL final utilizável —
   // reaproveita a mesma lógica de upload já usada para a imagem padrão.
@@ -26,4 +32,6 @@ export interface IKnowledgeExplorerProps {
   onToggleFolderHidden: (folderPath: string) => void;
   // Define a lista de usuários que podem ver uma pasta oculta mesmo assim (lista vazia remove a exceção).
   onSetFolderAllowedUsers: (folderPath: string, users: IHiddenFolderAllowedUser[]) => void;
+  // Grava (ou remove, se o texto vier vazio) a descrição de apresentação de uma pasta.
+  onSetFolderDescription: (folderPath: string, description: string) => void;
 }

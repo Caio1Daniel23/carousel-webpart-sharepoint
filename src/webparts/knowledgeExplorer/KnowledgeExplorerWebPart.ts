@@ -10,7 +10,8 @@ import {
   IKnowledgeExplorerWebPartProps,
   ICustomFolderImage,
   IHiddenFolderException,
-  IHiddenFolderAllowedUser
+  IHiddenFolderAllowedUser,
+  IFolderDescription
 } from './IKnowledgeExplorerWebPartProps';
 
 import { PropertyFieldFolderPicker } from '@pnp/spfx-property-controls/lib/PropertyFieldFolderPicker';
@@ -39,12 +40,14 @@ export default class KnowledgeExplorerWebPart extends BaseClientSideWebPart<IKno
       sortMode: this.properties.sortMode || 'name',
       hiddenFolders: this.properties.hiddenFolders || [],
       hiddenFolderExceptions: this.properties.hiddenFolderExceptions || [],
+      folderDescriptions: this.properties.folderDescriptions || [],
       displayMode: this.displayMode,
       uploadPickedImage: this.onImageSave.bind(this),
       onSetFolderImage: this.onSetFolderImage.bind(this),
       onRemoveFolderImage: this.onRemoveFolderImage.bind(this),
       onToggleFolderHidden: this.onToggleFolderHidden.bind(this),
-      onSetFolderAllowedUsers: this.onSetFolderAllowedUsers.bind(this)
+      onSetFolderAllowedUsers: this.onSetFolderAllowedUsers.bind(this),
+      onSetFolderDescription: this.onSetFolderDescription.bind(this)
     });
 
     ReactDom.render(element, this.domElement);
@@ -128,6 +131,17 @@ export default class KnowledgeExplorerWebPart extends BaseClientSideWebPart<IKno
     const withoutThisFolder = current.filter((e) => e.folderPath !== folderPath);
     this.properties.hiddenFolderExceptions =
       users.length > 0 ? [...withoutThisFolder, { folderPath, allowedUsers: users }] : withoutThisFolder;
+    this.render();
+    this.context.propertyPane.refresh();
+  }
+
+  // Grava a descrição de apresentação de uma pasta — chamado direto pelo "3 pontinhos" do
+  // card. Um texto vazio remove a entrada por completo, então nada é exibido naquela pasta.
+  private onSetFolderDescription(folderPath: string, description: string): void {
+    const current: IFolderDescription[] = this.properties.folderDescriptions || [];
+    const withoutThisFolder = current.filter((d) => d.folderPath !== folderPath);
+    const trimmed = (description || '').trim();
+    this.properties.folderDescriptions = trimmed ? [...withoutThisFolder, { folderPath, description: trimmed }] : withoutThisFolder;
     this.render();
     this.context.propertyPane.refresh();
   }

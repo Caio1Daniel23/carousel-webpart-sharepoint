@@ -13,7 +13,8 @@ import {
   IFileItem,
   IBreadcrumbItem,
   IDynamicColumn,
-  IHiddenFolderAllowedUser
+  IHiddenFolderAllowedUser,
+  IFolderDescription
 } from '../IKnowledgeExplorerWebPartProps';
 
 type LoadState = 'loading' | 'loaded' | 'error';
@@ -319,12 +320,14 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
     sortMode,
     hiddenFolders,
     hiddenFolderExceptions,
+    folderDescriptions,
     displayMode,
     uploadPickedImage,
     onSetFolderImage,
     onRemoveFolderImage,
     onToggleFolderHidden,
-    onSetFolderAllowedUsers
+    onSetFolderAllowedUsers,
+    onSetFolderDescription
   } = props;
 
   const [breadcrumb, setBreadcrumb] = useState<IBreadcrumbItem[]>([]);
@@ -340,6 +343,8 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
   const menuButtonRefs = useRef<{ [serverRelativeUrl: string]: HTMLButtonElement | null }>({});
   // Guarda de qual arquivo foi copiado o link por último, pra mostrar o "check" de confirmação.
   const [copiedFileUrl, setCopiedFileUrl] = useState<string | null>(null);
+  // Confirmação visual do botão "Copiar link desta pasta".
+  const [copiedFolderLink, setCopiedFolderLink] = useState<boolean>(false);
 
   // Estado da busca de pessoas usada pra adicionar exceções a uma pasta oculta.
   const [peopleQuery, setPeopleQuery] = useState<string>('');
@@ -347,12 +352,26 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
   const [peopleSearching, setPeopleSearching] = useState<boolean>(false);
   const peopleSearchTimeout = useRef<number | undefined>(undefined);
 
-  // Limpa a busca de pessoas sempre que o menu de "3 pontinhos" muda de pasta ou fecha —
-  // sem isso, o texto/resultados da pasta anterior ficariam aparecendo na próxima que abrir.
+  // Rascunho do texto de descrição sendo editado no card aberto no momento, e confirmação
+  // visual rápida ("Salvo") depois de gravar.
+  const [descriptionDraft, setDescriptionDraft] = useState<string>('');
+  const [descriptionJustSaved, setDescriptionJustSaved] = useState<boolean>(false);
+
+  // Limpa a busca de pessoas e recarrega o rascunho de descrição sempre que o menu de
+  // "3 pontinhos" muda de pasta ou fecha — sem isso, texto/resultados da pasta anterior
+  // ficariam aparecendo na próxima que abrir.
   useEffect(() => {
     setPeopleQuery('');
     setPeopleResults([]);
     setPeopleSearching(false);
+    setDescriptionJustSaved(false);
+
+    const openFolder = folders.filter((f) => f.serverRelativeUrl === imagePickerOpenFor)[0];
+    const existing = openFolder
+      ? (folderDescriptions || []).filter((d) => d.folderPath === openFolder.serverRelativeUrl)[0]
+      : undefined;
+    setDescriptionDraft(existing ? existing.description : '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imagePickerOpenFor]);
 
   const getRecursiveFileCount = useCallback(
@@ -498,12 +517,54 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
     [context, getRecursiveFileCount, columns]
   );
 
+  // Ao carregar, confere se a URL da página tem um link direto pra uma pasta específica
+  // (parâmetro "kbPath", gerado pelo botão "Copiar link desta pasta"). Se tiver e apontar
+  // pra dentro da biblioteca configurada, já abre direto lá com o breadcrumb inteiro montado
+  // — sem isso, o link sempre cairia na raiz, que é o comportamento de quem entra pelo caminho normal.
   useEffect(() => {
     if (!rootFolderPath) {
       setState('error');
       setErrorDetail('');
       return;
     }
+
+    const normalize = (p: string): string => (p || '').replace(/\/+$/, '').toLowerCase();
+    const normalizedRoot = normalize(rootFolderPath);
+
+    let deepLinkPath: string | null = null;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      deepLinkPath = params.get('kbPath');
+    } catch (err) {
+      deepLinkPath = null;
+    }
+
+    const pointsInsideRoot = !!deepLinkPath && normalize(deepLinkPath).indexOf(normalizedRoot) === 0;
+
+    if (pointsInsideRoot && deepLinkPath) {
+      const rootTrimmed = rootFolderPath.replace(/\/+$/, '');
+      const remainder = deepLinkPath
+        .slice(rootTrimmed.length)
+        .split('/')
+        .filter((segment) => !!segment);
+
+      const crumbs: IBreadcrumbItem[] = [{ name: rootTitle || 'Início', path: rootFolderPath }];
+      let accPath = rootTrimmed;
+      remainder.forEach((segment) => {
+        accPath = `${accPath}/${segment}`;
+        crumbs.push({ name: segment, path: accPath });
+      });
+
+      setBreadcrumb(crumbs);
+      (async (): Promise<void> => {
+        const cols = await resolveSchema(rootFolderPath);
+        setColumns(cols);
+        await loadFolder(accPath, cols);
+      })().catch(() => undefined);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      return;
+    }
+
     setBreadcrumb([{ name: rootTitle || 'Início', path: rootFolderPath }]);
     (async (): Promise<void> => {
       const cols = await resolveSchema(rootFolderPath);
@@ -577,33 +638,55 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
     );
   };
 
+  // Copia um texto pra área de transferência, com recurso alternativo pra navegadores
+  // mais antigos ou sem permissão de clipboard (campo de texto temporário + comando de cópia).
+  const copyTextToClipboard = async (text: string): Promise<void> => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const tempInput = document.createElement('textarea');
+    tempInput.value = text;
+    tempInput.style.position = 'fixed';
+    tempInput.style.opacity = '0';
+    document.body.appendChild(tempInput);
+    tempInput.focus();
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+  };
+
   // Copia o link do arquivo pra área de transferência, com um retorno visual rápido
   // (o ícone vira um "check" por 2 segundos) confirmando que funcionou.
   const handleCopyLink = async (file: IFileItem, ev: React.MouseEvent): Promise<void> => {
     ev.stopPropagation();
     try {
       const link = await resolveFileTarget(file);
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(link);
-      } else {
-        // Navegadores mais antigos/sem permissão de clipboard: recurso alternativo
-        // usando um campo de texto temporário e o comando de cópia do navegador.
-        const tempInput = document.createElement('textarea');
-        tempInput.value = link;
-        tempInput.style.position = 'fixed';
-        tempInput.style.opacity = '0';
-        document.body.appendChild(tempInput);
-        tempInput.focus();
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-      }
+      await copyTextToClipboard(link);
 
       setCopiedFileUrl(file.serverRelativeUrl);
       window.setTimeout(() => {
         setCopiedFileUrl((prev) => (prev === file.serverRelativeUrl ? null : prev));
       }, 2000);
+    } catch (err) {
+      // Se falhar (ex: sem permissão de clipboard), simplesmente não mostra a confirmação.
+    }
+  };
+
+  // Monta e copia um link que, ao ser aberto, já cai direto na pasta atual (com o breadcrumb
+  // inteiro montado) — em vez de cair na raiz, como acontece em quem entra pela página normal.
+  // Preserva qualquer outro parâmetro que a URL da página já tenha.
+  const handleCopyFolderLink = async (): Promise<void> => {
+    try {
+      const currentPath = breadcrumb[breadcrumb.length - 1]?.path;
+      if (!currentPath) return;
+
+      const shareUrl = new URL(window.location.href);
+      shareUrl.searchParams.set('kbPath', currentPath);
+      await copyTextToClipboard(shareUrl.toString());
+
+      setCopiedFolderLink(true);
+      window.setTimeout(() => setCopiedFolderLink(false), 2000);
     } catch (err) {
       // Se falhar (ex: sem permissão de clipboard), simplesmente não mostra a confirmação.
     }
@@ -644,6 +727,19 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
 
   const handleToggleHidden = (folder: IFolderItem): void => {
     onToggleFolderHidden(folder.serverRelativeUrl);
+  };
+
+  // Descrição salva de uma pasta específica (usada tanto pra pré-carregar o rascunho quanto
+  // pra decidir se mostra o quadro de apresentação ao entrar na pasta).
+  const getFolderDescription = (folderPath: string): string =>
+    (folderDescriptions || []).filter((d: IFolderDescription) => d.folderPath === folderPath)[0]?.description || '';
+
+  // Grava o texto digitado no rascunho como a descrição da pasta. Texto vazio remove a
+  // descrição (nada aparece ao entrar na pasta). Mantém o menu aberto, com confirmação visual.
+  const handleSaveDescription = (folder: IFolderItem): void => {
+    onSetFolderDescription(folder.serverRelativeUrl, descriptionDraft);
+    setDescriptionJustSaved(true);
+    window.setTimeout(() => setDescriptionJustSaved(false), 1600);
   };
 
   // Lista de usuários que continuam vendo esta pasta mesmo com ela oculta para todo mundo.
@@ -736,6 +832,11 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
     return list.sort(byName);
   })();
 
+  // Descrição da pasta que está sendo visualizada agora (o último item do breadcrumb) —
+  // exibida acima da grade de subpastas/lista de arquivos quando não estiver em branco.
+  const currentFolderPath = breadcrumb[breadcrumb.length - 1]?.path;
+  const currentFolderDescription = currentFolderPath ? getFolderDescription(currentFolderPath) : '';
+
   if (!rootFolderPath) {
     return (
       <div className={styles.explorer} style={{ minHeight: height }}>
@@ -765,11 +866,25 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
           ))}
         </div>
         {breadcrumb.length > 1 && (
-          <button className={styles.backButton} onClick={goBack}>
-            <Icon iconName="Back" /> Voltar
-          </button>
+          <div className={styles.headerActions}>
+            <button
+              className={`${styles.copyFolderLinkButton} ${copiedFolderLink ? styles.copyFolderLinkButtonCopied : ''}`}
+              onClick={(): void => {
+                handleCopyFolderLink().catch(() => undefined);
+              }}
+              title="Copiar link direto para esta pasta"
+            >
+              <Icon iconName={copiedFolderLink ? 'CheckMark' : 'Link'} />
+              {copiedFolderLink ? 'Link copiado!' : 'Copiar link desta pasta'}
+            </button>
+            <button className={styles.backButton} onClick={goBack}>
+              <Icon iconName="Back" /> Voltar
+            </button>
+          </div>
         )}
       </div>
+
+      {currentFolderDescription && <div className={styles.folderDescription}>{currentFolderDescription}</div>}
 
       {state === 'loading' && <div className={styles.loading}>Carregando...</div>}
 
@@ -871,6 +986,25 @@ const KnowledgeExplorer: React.FC<IKnowledgeExplorerProps> = (props) => {
                               <div className={styles.calloutDivider} />
                             </>
                           )}
+
+                          <div className={styles.imagePickerTitle}>Descrição desta pasta</div>
+                          <div className={styles.imagePickerHint}>
+                            Aparece acima da lista ao entrar nesta pasta. Em branco, não mostra nada.
+                          </div>
+                          <textarea
+                            className={styles.folderDescriptionInput}
+                            value={isPickerOpen ? descriptionDraft : ''}
+                            onChange={(ev): void => setDescriptionDraft(ev.target.value)}
+                            rows={3}
+                          />
+                          <div className={styles.descriptionSaveRow}>
+                            <button className={styles.imagePickerRemove} onClick={() => handleSaveDescription(folder)}>
+                              Salvar descrição
+                            </button>
+                            {descriptionJustSaved && <span className={styles.descriptionSavedLabel}>Salvo!</span>}
+                          </div>
+                          <div className={styles.calloutDivider} />
+
                           <button className={styles.imagePickerRemove} onClick={() => handleToggleHidden(folder)}>
                             {hidden ? 'Mostrar esta pasta novamente' : 'Ocultar esta pasta'}
                           </button>
