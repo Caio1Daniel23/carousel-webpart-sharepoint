@@ -32,7 +32,14 @@ function stripEmoji(text: string): string {
   return (text || '').replace(EMOJI_REGEX, '').replace(/\s{2,}/g, ' ').trim();
 }
 
+// Abaixo dessa largura (px) a web part fica estreita demais para a imagem
+// (280px) e o texto dividirem a linha — a imagem passa pra cima do texto.
+const NARROW_BREAKPOINT = 700;
+
 export default class Noticias extends React.Component<INoticiasProps, INoticiasState> {
+  private rootRef = React.createRef<HTMLDivElement>();
+  private resizeObserver: ResizeObserver | undefined;
+
   constructor(props: INoticiasProps) {
     super(props);
     this.state = {
@@ -40,12 +47,37 @@ export default class Noticias extends React.Component<INoticiasProps, INoticiasS
       error: '',
       news: [],
       currentPage: 1,
-      carouselIndex: 0
+      carouselIndex: 0,
+      containerWidth: 0
     };
   }
 
   public componentDidMount(): void {
     this.loadNews();
+    this.observeSize();
+  }
+
+  public componentWillUnmount(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+  }
+
+  // Medimos a largura real da web part em JavaScript (em vez de @media, que
+  // olha a janela do navegador inteira, ou @container, que este projeto não
+  // consegue compilar corretamente) — isso funciona em qualquer navegador,
+  // independentemente de onde a web part está posicionada na página.
+  private observeSize(): void {
+    if (!this.rootRef.current || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        this.setState((prev) => (prev.containerWidth === width ? null : { containerWidth: width }));
+      }
+    });
+    this.resizeObserver.observe(this.rootRef.current);
   }
 
   public componentDidUpdate(prevProps: INoticiasProps): void {
@@ -79,6 +111,14 @@ export default class Noticias extends React.Component<INoticiasProps, INoticiasS
       carouselIndex: Math.max(0, Math.min(carouselCount - 1, prev.carouselIndex + dir))
     }));
   };
+
+  // Retorna se a web part está abaixo do limite em que a imagem e o texto
+  // precisam empilhar. Usado para montar "style" inline diretamente no JSX
+  // — não depende de nenhuma classe CSS gerada pelo compilador SASS deste
+  // projeto, então funciona garantido, não importa a configuração dele.
+  private isNarrow(): boolean {
+    return this.state.containerWidth > 0 && this.state.containerWidth < NARROW_BREAKPOINT;
+  }
 
   private renderThumb(item: INewsItem): JSX.Element {
     return item.imageUrl ? (
@@ -116,9 +156,17 @@ export default class Noticias extends React.Component<INoticiasProps, INoticiasS
   }
 
   private renderRow(item: INewsItem): JSX.Element {
+    const narrow = this.isNarrow();
     return (
-      <a key={item.id} className={styles.newsRow} href={item.url}>
-        <div className={styles.thumb}>{this.renderThumb(item)}</div>
+      <a
+        key={item.id}
+        className={styles.newsRow}
+        href={item.url}
+        style={narrow ? { gridTemplateColumns: '1fr', gap: 10 } : undefined}
+      >
+        <div className={styles.thumb} style={narrow ? { width: '100%', height: 200 } : undefined}>
+          {this.renderThumb(item)}
+        </div>
         <div>
           <h3>{item.title}</h3>
           {item.description && <div className={styles.desc}>{stripEmoji(item.description)}</div>}
@@ -220,7 +268,12 @@ export default class Noticias extends React.Component<INoticiasProps, INoticiasS
           </button>
           <div className={styles.carouselTrack}>
             {featured.map((item) => (
-              <a key={item.id} className={styles.carCard} href={item.url}>
+              <a
+                key={item.id}
+                className={styles.carCard}
+                href={item.url}
+                style={this.isNarrow() ? { flexBasis: '100%' } : undefined}
+              >
                 <div className={styles.carThumb}>{this.renderThumb(item)}</div>
                 <div className={styles.carBody}>
                   <h3>{item.title}</h3>
@@ -254,10 +307,14 @@ export default class Noticias extends React.Component<INoticiasProps, INoticiasS
 
   public render(): React.ReactElement<INoticiasProps> {
     const { title, layoutMode, compactMode } = this.props;
-    const { loading, error, news } = this.state;
+    const { loading, error, news, containerWidth } = this.state;
+    const isNarrow = containerWidth > 0 && containerWidth < NARROW_BREAKPOINT;
 
     return (
-      <div className={`${styles.noticias} ${compactMode ? styles.compact : ''}`}>
+      <div
+        ref={this.rootRef}
+        className={`${styles.noticias} ${compactMode ? styles.compact : ''} ${isNarrow && styles.narrow ? styles.narrow : ''}`}
+      >
         <div className={styles.header}>
           <h2>{title}</h2>
           {!loading && !error && <span className={styles.count}>{news.length} publicadas</span>}
